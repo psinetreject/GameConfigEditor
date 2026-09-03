@@ -679,6 +679,28 @@ describe('RuneScape: Dragonwilds', () => {
         expect(g.format.parse(sample)!.getRaw(addr(SECTION, 'ServerGuid'))).toBe('A1B2C3D4');
     });
 
+    it('reads every KnownPlayerList line, not just the last one', () => {
+        // getRaw resolves a repeated key to its last occurrence - correct for a
+        // scalar, useless for a list. getAllRaw is what makes the roster visible.
+        const doc = dw().format.parse(
+            [
+                '[/script/dominion.dedicatedserversettings]',
+                'ServerName=x',
+                'KnownPlayerList=(UserId="1",UserName="Ann",Privileges=2,LastAdminPassword="pw",bIsBanned=False)',
+                'KnownPlayerList=(UserId="2",UserName="Bob",Privileges=0,LastAdminPassword="",bIsBanned=True)',
+                '',
+            ].join('\n'),
+        )!;
+        const all = doc.getAllRaw!(addr(SECTION, 'KnownPlayerList'));
+        expect(all).toHaveLength(2);
+        expect(all[0]).toContain('UserName="Ann"');
+        expect(all[1]).toContain('UserName="Bob"');
+        // The scalar accessor still behaves as before for everything else.
+        expect(doc.getRaw(addr(SECTION, 'ServerName'))).toBe('x');
+        expect(doc.getAllRaw!(addr(SECTION, 'ServerName'))).toEqual(['x']);
+        expect(doc.getAllRaw!(addr(SECTION, 'Nope'))).toEqual([]);
+    });
+
 
     it('warns to stop the server first, and explains both platform folders', () => {
         const g = dw();

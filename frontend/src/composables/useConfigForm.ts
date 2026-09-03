@@ -9,6 +9,39 @@
  */
 import { computed, ref, type WritableComputedRef } from 'vue';
 import type { Codec, ConfigDoc, ConfigValue, FieldDef, FType, Group, Schema } from '../formats/types';
+import { escapeSegment, splitAddress } from '../formats/shared';
+
+/** Is `address` inside the array/object at `path` (not the path itself)? */
+function isUnder(address: string, path: string): boolean {
+    const prefix = splitAddress(path);
+    const parts = splitAddress(address);
+    return parts.length > prefix.length && prefix.every((p, i) => parts[i] === p);
+}
+
+/**
+ * The row indices an array-backed table actually has, ascending.
+ *
+ * Read from the document rather than assumed: an array may be empty, and the
+ * form must never invent a row the file doesn't have - writing to
+ * `userGroups.3.password` when there are three groups would be rejected by the
+ * format anyway (it won't grow a list), and would render an input that silently
+ * does nothing.
+ */
+export function arrayTableRows(doc: ConfigDoc, path: string): number[] {
+    const prefix = splitAddress(path);
+    const seen = new Set<number>();
+    for (const key of doc.keys()) {
+        if (!isUnder(key, path)) continue;
+        const index = Number(splitAddress(key)[prefix.length]);
+        if (Number.isInteger(index) && index >= 0) seen.add(index);
+    }
+    return [...seen].sort((a, b) => a - b);
+}
+
+/** Address of one cell. The single spelling both the form and the table use. */
+export function cellAddress(path: string, row: number, key: string): string {
+    return `${path}.${row}.${escapeSegment(key)}`;
+}
 
 /**
  * Guess a widget for a key the schema doesn't describe. Anything that isn't
@@ -30,11 +63,22 @@ export function inferType(raw: string): FType {
  */
 export function inferGroups(doc: ConfigDoc, schema: Schema): Group[] {
     const norm = doc.normKey ? (a: string) => doc.normKey!(a) : (a: string) => a;
-    const known = new Set(schema.flatMap((g) => g.fields.map((f) => norm(f.key))));
+    // A struct table's address counts as covered too, or the repeated key it
+    // renders as rows would ALSO show up here as a lone raw field holding its
+    // last line.
+    const known = new Set([
+        ...schema.flatMap((g) => g.fields.map((f) => norm(f.key))),
+        ...schema.flatMap((g) => (g.table?.kind === 'struct-rows' ? [norm(g.table.address)] : [])),
+    ]);
+    // An array table covers a whole subtree, not one address: every
+    // `userGroups.0.password` under it is rendered as a cell, so listing them
+    // again as loose fields would show the same value twice in two places.
+    const tablePaths = schema.flatMap((g) => (g.table?.kind === 'array-rows' ? [g.table.path] : []));
 
     const bySection = new Map<string, FieldDef[]>();
     for (const key of doc.keys()) {
         if (known.has(norm(key))) continue;
+        if (tablePaths.some((path) => isUnder(key, path))) continue;
         const section = doc.sectionOf(key);
         const fields = bySection.get(section) ?? [];
         fields.push({ key, label: doc.labelOf(key), type: inferType(doc.getRaw(key) ?? '') });
@@ -73,10 +117,39 @@ export function useConfigForm(doc: ConfigDoc, schema: Schema, codec: Codec) {
     }
 
     const inferred = inferGroups(doc, schema);
-    const groups = computed<Group[]>(() => [...schema.filter((g) => g.fields.length), ...inferred]);
+    // A table-only group has no fields but plenty to render, so it must survive
+    // the empty-group filter.
+    const groups = computed<Group[]>(() => [
+        ...schema.filter((g) => g.fields.length || g.table),
+        ...inferred,
+    ]);
+
+    /**
+     * Cells of every array-backed table, as ordinary fields.
+     *
+     * Deliberately not a separate write path: a cell address is a real address,
+     * so routing it through the same models gives it the format's type coercion
+     * (a `reservedSlots` of 2 stays a JSON number), the same writeError
+     * reporting, and the same dirty flag - for free, and without the editor
+     * having to know a table is involved.
+     */
+    const cells: FieldDef[] = [];
+    for (const group of schema) {
+        if (group.table?.kind !== 'array-rows') continue;
+        const { path, columns } = group.table;
+        for (const row of arrayTableRows(doc, path)) {
+            for (const col of columns) {
+                cells.push({
+                    key: cellAddress(path, row, col.key),
+                    label: `${col.label} (row ${row + 1})`,
+                    type: col.type ?? 'text',
+                });
+            }
+        }
+    }
 
     const models: Record<string, WritableComputedRef<ConfigValue>> = {};
-    for (const group of [...schema, ...inferred]) {
+    for (const group of [...schema, ...inferred, { fields: cells } as Group]) {
         for (const f of group.fields) {
             // Two groups may name the same key; they then share one model.
             if (models[f.key]) continue;

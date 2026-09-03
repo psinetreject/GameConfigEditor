@@ -165,10 +165,17 @@ generic editor rather than labelling a Bedrock config with Java's fields.
 `enshrouded_server.json` keeps its access control in a `userGroups` array - one
 object per role, each with a password and five permission flags, and the password
 a player types decides which role they join as. That array is the part hosts
-edit most, so this file is parsed with the array-walking JSON format (the one
-Minecraft's player lists use) rather than the plain one: each role becomes its
-own `userGroups[0]`, `userGroups[1]` group of typed fields instead of a single
-input holding the whole array as one line of JSON.
+edit most, so it gets an **editable table**: one row per role, one column per
+field, permission flags as toggles.
+
+That works because the file is parsed with the array-walking JSON format (the
+one Minecraft's player lists use) rather than the plain one. Every cell -
+`userGroups.0.password` - is a real address the format reads and writes, so the
+table binds to ordinary field models and gets the codec, the JSON type coercion
+(`reservedSlots` stays a number, `canKickBan` stays a boolean), the write-error
+reporting and the dirty flag for free. Rows can be edited but not added or
+removed: `json.ts` refuses to write through a missing index, so the form cannot
+grow a list, and adding a role stays a job for the plain editor.
 
 The trade-off is at the other end. An *empty* array contributes no addresses, so
 `tags` and the ban list are invisible on a fresh server - they round-trip
@@ -179,6 +186,35 @@ Everything under `gameSettings` is only read when `gameSettingsPreset` is
 `"Custom"`; under the other four presets the server uses the preset's values and
 ignores the file's. The editor says so in a banner, because the edit otherwise
 saves cleanly and changes nothing.
+
+### The Dragonwilds players table
+
+`KnownPlayerList` is a *repeated* key - the server appends one line per player
+who has entered the admin password, each an Unreal struct literal:
+
+```
+KnownPlayerList=(UserId="0002-...",UserName="...",Privileges=2,LastAdminPassword="...",bIsBanned=False)
+```
+
+`getRaw` resolves a repeated key to its **last** occurrence, which is right for
+a scalar that appears twice and useless for a list. So `ConfigDoc` gained
+`getAllRaw()`, and a Group can carry a `TableSpec` instead of fields: one row
+per occurrence, columns mapped from the struct's fields, `bIsBanned` as a
+checkmark. A table hangs off the *group* rather than being another `FType`
+because a field maps one address to one scalar model, and these rows are
+neither.
+
+It is **read-only**, deliberately. The server owns the list and rewrites the
+whole file on shutdown - the same reason the entry sets `stopWarning` - so an
+edit here races the process that wrote it. Bans belong in the in-game Server
+Management screen. That is the same call this plugin already makes for
+Minecraft's `ops.json` and `whitelist.json`.
+
+The line format is not documented anywhere public; it is inferred from Unreal's
+conventions. The parser is therefore tolerant (quotes optional, field order
+irrelevant, unknown fields kept) and fails *visibly*: a line it does not
+recognise is printed verbatim under the table rather than dropped, so an
+unexpected format looks like unexpected text instead of a missing player.
 
 ### The Dragonwilds section header
 

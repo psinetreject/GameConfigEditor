@@ -28,6 +28,8 @@ export function section(s: string) {
         b: (key: string, label: string) => b(addr(s, key), label),
         t: (key: string, label: string) => t(addr(s, key), label),
         sel: (key: string, label: string, options: string[]) => sel(addr(s, key), label, options),
+        /** The bare section-qualified address, for things that aren't fields (a TableSpec). */
+        at: (key: string) => addr(s, key),
     };
 }
 

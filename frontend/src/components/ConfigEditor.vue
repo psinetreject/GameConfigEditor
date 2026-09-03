@@ -5,6 +5,7 @@ import { NAlert, NDivider, NForm, NFormItem } from 'naive-ui';
 import type { FileEditorProps, ServerData } from '@gameap/plugin-sdk';
 import { useServer } from '@gameap/plugin-sdk';
 import FieldInput from './FieldInput.vue';
+import ConfigTable from './ConfigTable.vue';
 import { useConfigForm } from '../composables/useConfigForm';
 import { resolve, type GameConfig } from '../games/registry';
 
@@ -193,7 +194,7 @@ const note = game?.note;
                             Keys not in the schema - edited as raw values, preserved verbatim.
                         </p>
 
-                        <div class="gce-fields">
+                        <div v-if="group.fields.length" class="gce-fields">
                             <n-form-item v-for="f in group.fields" :key="f.key" class="gce-field">
                                 <template #label>
                                     <span class="inline-flex flex-wrap items-center gap-2 min-w-0">
@@ -212,6 +213,16 @@ const note = game?.note;
                                 </div>
                             </n-form-item>
                         </div>
+
+                        <!-- A group may carry a table instead of (or as well as)
+                             fields: one row per occurrence of a repeated key. -->
+                        <ConfigTable
+                            v-if="group.table && doc"
+                            :spec="group.table"
+                            :doc="doc"
+                            :models="models"
+                            :saving="saving"
+                        />
                     </section>
                 </template>
             </n-form>

@@ -38,6 +38,7 @@ export const PLUGIN_ICONS = {
     // here, and registerPluginIcons() skips it once a panel ships it.
     'box-open': 'fa-solid fa-box-open',
     'bug': 'fa-solid fa-bug',
+    'check': 'fa-solid fa-check',
     'comment': 'fa-solid fa-comment',
     'comment-slash': 'fa-solid fa-comment-slash',
     'crosshairs': 'fa-solid fa-crosshairs',

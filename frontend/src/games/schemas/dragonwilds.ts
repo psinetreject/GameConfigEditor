@@ -19,6 +19,12 @@
  * a `t` field like the rest because the form has no read-only text control; the
  * warning is the guard.
  *
+ * `KnownPlayerList` is a repeated key, one line per player who has used the
+ * admin password, each an Unreal struct literal. It renders as the Players table
+ * rather than as fields - see TableSpec in formats/types.ts for why that hangs
+ * off the group - and is read-only: the server appends to it and rewrites the
+ * file on shutdown, so bans belong in the in-game Server Management screen.
+ *
  * `bCanSaveAllSections` is Unreal's config-save bookkeeping rather than a game
  * setting, and it lives in `[SectionsToSave]`, but it is shown under Server /
  * Identity because it governs whether the server rewrites this file at all -
@@ -62,5 +68,28 @@ export const dragonwildsSchema: Schema = [
             s.t('AdminPassword', 'Admin password (unlocks the Server Management tab)'),
             s.t('WorldPassword', 'World password (empty = anyone can join)'),
         ],
+    },
+    {
+        id: 'players',
+        title: 'Players',
+        icon: 'id-card',
+        // No fields: this group is the table. One row per KnownPlayerList line.
+        fields: [],
+        table: {
+            // Repeated key, one Unreal struct literal per line - and read-only:
+            // a cell isn't separately addressable, and the server owns the list.
+            kind: 'struct-rows',
+            address: s.at('KnownPlayerList'),
+            columns: [
+                { key: 'UserId', label: 'User ID' },
+                { key: 'UserName', label: 'User Name' },
+                { key: 'Privileges', label: 'Privileges' },
+                { key: 'LastAdminPassword', label: 'Last Admin Password' },
+                { key: 'bIsBanned', label: 'Is Banned', type: 'bool' },
+            ],
+            empty:
+                'No players recorded yet. The server adds an entry the first time someone enters the admin ' +
+                'password on the Server Management screen.',
+        },
     },
 ];
