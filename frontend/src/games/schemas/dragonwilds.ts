@@ -44,7 +44,7 @@ export const dragonwildsSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             s.t('ServerName', 'Server name (shown in the browser)'),
             s.t('DefaultWorldName', 'Default world name (names the world only when it is first created)'),
@@ -56,7 +56,7 @@ export const dragonwildsSchema: Schema = [
     {
         id: 'access',
         title: 'Ownership & Passwords',
-        icon: 'fa-solid fa-key',
+        icon: 'key',
         fields: [
             s.t('OwnerId', 'Owner Player ID (required - the server will not start without it)'),
             s.t('AdminPassword', 'Admin password (unlocks the Server Management tab)'),
