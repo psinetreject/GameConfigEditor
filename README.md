@@ -11,7 +11,7 @@ shared config-format parsers.
 
 ## Supported games
 
-38 of the 41 games in GameAP's built-in catalog, plus six added manually.
+38 of the 41 games in GameAP's built-in catalog, plus seven added manually.
 `game_id` is what the plugin matches on (`server.game_id`); the server app id is
 the Steam dedicated-server app from GameAP's own catalog, handy when adding a game
 to the panel.
@@ -35,6 +35,7 @@ to the panel.
 | V Rising | `1604030` | - | `/save-data/Settings/ServerHostSettings.json` |
 | V Rising | `1604030` | - | `/save-data/Settings/ServerGameSettings.json` |
 | Enshrouded | `enshrouded` | `2278520` | `/enshrouded_server.json` |
+| RuneScape: Dragonwilds | `rsdw` | `4019830` | `/RSDragonwilds/Saved/Config/{Linux,LinuxServer,Windows,WindowsServer}/DedicatedServer.ini` |
 | 7 Days to Die | `7d2d` | `294420` | `/serverconfig.xml` |
 | The Forest | `the-forest` | `556450` | `/Server.cfg` |
 | Hurtworld | `hurtworld` | `405100` | `/autoexec.cfg` |
@@ -131,7 +132,7 @@ the file actually holds rather than inventing keys.
 > Enshrouded and Minecraft: Bedrock aren't in GameAP's catalog - they're added by
 > hand, so their `game_id` is whatever your panel uses. Palworld is assumed
 > `palworld`, Project Zomboid `projectzomboid`, Factorio `factorio`, Enshrouded
-> `enshrouded`, Bedrock `minecraft-bedrock`, and
+> `enshrouded`, Dragonwilds `rsdw`, Bedrock `minecraft-bedrock`, and
 > V Rising `1604030` (the game's Steam app id, which is how it was added here -
 > not the dedicated-server app `1829350`). If your server uses a different code,
 > the "Game Config" tab prints the actual one - change the matching `gameId` in
@@ -178,6 +179,37 @@ Everything under `gameSettings` is only read when `gameSettingsPreset` is
 `"Custom"`; under the other four presets the server uses the preset's values and
 ignores the file's. The editor says so in a banner, because the edit otherwise
 saves cleanly and changes nothing.
+
+### The Dragonwilds section header
+
+`DedicatedServer.ini` is an ordinary Unreal INI, with one trap. Jagex's guide
+spells the settings section `[/Script/Dominion.DedicatedServerSettings]`; the
+server writes `[/script/dominion.dedicatedserversettings]`. Matched
+case-sensitively, every curated field would come up empty and saving would
+append a *second* section that the game then ignores - so this file gets the
+same case-insensitive INI treatment as ARK, covering the section name as well as
+the keys.
+
+Its one boolean is written `Public=1` rather than Unreal's usual `True`/`False`,
+so the format also counts `1`/`yes`/`on` as true. Writes stay `True`/`False`,
+which is what Unreal's own config writer emits and its reader accepts either
+way.
+
+Jagex documents five settings; all five are curated, plus `Public`, `ServerGuid`
+(labelled as generated and not to be edited) and `bCanSaveAllSections`. That last
+one lives in `[SectionsToSave]` rather than the settings section, but is shown
+under Server / Identity because it governs whether the server rewrites this file
+at all - the thing most likely to eat an edit made here. A schema group can mix
+sections freely: the address carries its section with it. There is no
+player-limit key (the server is capped at 6 and takes no setting for it), no
+difficulty, and no ports - 7777/7778 UDP come from the command line. Edits made
+while the server is running are lost, because it rewrites this file itself, so
+the tab warns before saving to a running server.
+
+The platform folder is not knowable up front, so the entry lists all four in
+`altDirs` and the tab probes them: every source disagrees (XGamingServer
+documents `Linux`, Jagex's own guide `LinuxServer`), and a Windows build run
+under Proton writes the *Windows* folders even on a Linux node.
 
 ## How it works
 

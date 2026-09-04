@@ -4,6 +4,7 @@
  * schema fields, which no compiler can validate for us.
  */
 import { describe, expect, it } from 'vitest';
+import { addr } from '../formats/shared';
 import { configDir, configDirCandidates, configPath, games, gamesFor, resolve, resolveIn } from './registry';
 
 describe('resolve', () => {
@@ -584,6 +585,124 @@ describe('Enshrouded', () => {
         const g = enshrouded();
         expect(g.note).toMatch(/Custom/);
         expect(g.loadHint).toMatch(/first time the server starts/);
+    });
+});
+
+describe('RuneScape: Dragonwilds', () => {
+    // A real server-written file: Unreal's metadata comment, the SectionsToSave
+    // bookkeeping, and - the point of this suite - the settings section spelled
+    // in LOWERCASE, which is how the server writes it and not how Jagex's guide
+    // documents it.
+    const SECTION = '/Script/Dominion.DedicatedServerSettings';
+    const sample = [
+        ';METADATA=(Diff=true, UseCommands=true)',
+        '[SectionsToSave]',
+        'bCanSaveAllSections=true',
+        '[/script/dominion.dedicatedserversettings]',
+        'AdminPassword=hunter2',
+        'OwnerId=1234567890',
+        'Public=1',
+        'ServerName=My Server',
+        'DefaultWorldName=Gielinor',
+        'ServerGuid=A1B2C3D4',
+        '',
+    ].join('\n');
+
+    const dw = () => resolve('rsdw', 'DedicatedServer.ini')!;
+
+    it('reads DedicatedServer.ini from the Unreal platform config folder', () => {
+        const g = dw();
+        expect(configPath(g)).toBe('/RSDragonwilds/Saved/Config/Linux/DedicatedServer.ini');
+        expect(configDir(g)).toBe('/RSDragonwilds/Saved/Config/Linux');
+        expect(g.format.id).toBe('dragonwilds-ini');
+    });
+
+    it('finds every curated key even though the file lowercases the section', () => {
+        // The whole reason this game gets a case-insensitive format. Under a
+        // case-sensitive match every one of these would be undefined.
+        const g = dw();
+        const doc = g.format.parse(sample)!;
+        for (const f of g.schema!.flatMap((s) => s.fields)) {
+            if (f.key.endsWith('\0WorldPassword')) continue; // absent from this sample on purpose
+            expect(doc.has(f.key), `${f.key} is unreachable`).toBe(true);
+        }
+        expect(doc.getRaw(addr(SECTION, 'ServerName'))).toBe('My Server');
+        expect(doc.getRaw(addr(SECTION, 'OwnerId'))).toBe('1234567890');
+    });
+
+    it('reads Public=1 as on, not off', () => {
+        // Unreal usually writes True/False and the default codec only accepts
+        // that; Dragonwilds writes 1. Without the widened isTruthy this toggle
+        // would show off on a server that is in fact publicly listed.
+        const codec = dw().format.codec;
+        expect(codec.fromRaw('1', 'bool')).toBe(true);
+        expect(codec.fromRaw('True', 'bool')).toBe(true);
+        expect(codec.fromRaw('0', 'bool')).toBe(false);
+        expect(codec.fromRaw('', 'bool')).toBe(false);
+        // Writes use Unreal's own spelling, which its reader also accepts.
+        expect(codec.toRaw(true, 'bool')).toBe('True');
+        expect(codec.toRaw(false, 'bool')).toBe('False');
+    });
+
+    it('round-trips an untouched file, comment and casing included', () => {
+        expect(dw().format.parse(sample)!.serialize()).toBe(sample);
+    });
+
+    it('rewrites exactly one line when a key is edited', () => {
+        const doc = dw().format.parse(sample)!;
+        expect(doc.setRaw(addr(SECTION, 'ServerName'), 'Renamed')).toBe(true);
+        const before = sample.split('\n');
+        const after = doc.serialize().split('\n');
+        expect(after.filter((line, i) => line !== before[i])).toHaveLength(1);
+        expect(doc.serialize()).toContain('ServerName=Renamed');
+        // The server's own casing survives - we replace the value, not the line.
+        expect(doc.serialize()).toContain('[/script/dominion.dedicatedserversettings]');
+    });
+
+    it('adds a missing key to the existing section instead of a duplicate one', () => {
+        // The corruption this format guards against: writing WorldPassword under
+        // a freshly appended [/Script/...] header, which the game would ignore
+        // while the real section sat above it.
+        const doc = dw().format.parse(sample)!;
+        expect(doc.has(addr(SECTION, 'WorldPassword'))).toBe(false);
+        expect(doc.setRaw(addr(SECTION, 'WorldPassword'), 'secret')).toBe(true);
+        const out = doc.serialize();
+        expect(out).toContain('WorldPassword=secret');
+        expect(out.match(/^\[\/script\/dominion\.dedicatedserversettings\]$/gim)).toHaveLength(1);
+        expect(out).not.toMatch(/^\[\/Script\/Dominion\.DedicatedServerSettings\]$/m);
+    });
+
+    it('surfaces the server-generated id under identity', () => {
+        const g = dw();
+        const curated = new Set(g.schema!.flatMap((s) => s.fields.map((f) => f.key)));
+        expect(curated.has(addr(SECTION, 'ServerGuid'))).toBe(true);
+        expect(g.format.parse(sample)!.getRaw(addr(SECTION, 'ServerGuid'))).toBe('A1B2C3D4');
+    });
+
+
+    it('warns to stop the server first, and explains both platform folders', () => {
+        const g = dw();
+        expect(g.stopWarning).toBe(true);
+        expect(g.loadHint).toMatch(/LinuxServer/);
+        expect(g.note).toMatch(/OwnerId/);
+    });
+
+    it('offers all four Unreal platform folders, Linux first', () => {
+        // Which one is right depends on the engine version AND on whether the
+        // Windows build is running under Proton, so there is no single answer to
+        // hard-code - the tab probes them in order.
+        expect(configDirCandidates(dw())).toEqual([
+            '/RSDragonwilds/Saved/Config/Linux',
+            '/RSDragonwilds/Saved/Config/LinuxServer',
+            '/RSDragonwilds/Saved/Config/Windows',
+            '/RSDragonwilds/Saved/Config/WindowsServer',
+        ]);
+        expect(configDirCandidates(dw()).map((dir) => configPath(dw(), dir))).toEqual([
+            '/RSDragonwilds/Saved/Config/Linux/DedicatedServer.ini',
+            '/RSDragonwilds/Saved/Config/LinuxServer/DedicatedServer.ini',
+            '/RSDragonwilds/Saved/Config/Windows/DedicatedServer.ini',
+            '/RSDragonwilds/Saved/Config/WindowsServer/DedicatedServer.ini',
+        ]);
     });
 });
 
