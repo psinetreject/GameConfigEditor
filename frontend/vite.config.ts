@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import tailwindcss from '@tailwindcss/vite';
 // Sourced from vite's re-exported Rollup compat namespace rather than the
 // `rollup` package: vite 8 bundles rolldown, so `rollup` is not installed and
 // depending on it just to name a type would pull a bundler we never run.
@@ -25,34 +24,46 @@ const pluginVersion = (
     process.env.PLUGIN_VERSION || readFileSync(resolve(import.meta.dirname, '../VERSION'), 'utf8')
 ).trim();
 
-// GameAP provides vue/router/pinia/axios as globals on window at runtime, so we
-// externalize them and rewrite imports to read from those globals. (Same
-// approach as the official hex-editor plugin.)
-function globalExternalsPlugin(): Rollup.Plugin {
-    const globals = {
-        'vue': 'window.Vue',
-        'axios': 'window.axios',
-    };
+// GameAP provides these as globals on window at runtime (js/plugins/loader.js),
+// so we externalize them and rewrite imports to read from those globals - the
+// same approach as the official plugin SDK's build config.
+const GLOBALS: Record<string, string> = {
+    'vue': 'window.Vue',
+    'axios': 'window.axios',
+    // Panel 4.4.0 and newer. Components import naive-ui by name; the panel
+    // exposes the same module object here.
+    'naive-ui': 'window.NaiveUI',
+    // Never imported here directly, but @gameap/plugin-sdk re-exports it from
+    // 0.3.3 on. External so a future SDK bump cannot bundle the panel's own UI
+    // package into ours.
+    '@gameap/ui': 'window.gameapUI',
+};
 
+function globalExternalsPlugin(): Rollup.Plugin {
     return {
         name: 'global-externals',
         renderChunk(code) {
             let result = code;
-            for (const [moduleId, globalVar] of Object.entries(globals)) {
+            for (const [moduleId, globalVar] of Object.entries(GLOBALS)) {
+                // `import { a, b as c } from 'x'` -> `const a = window.X?.a, c = window.X?.b;`
+                // Optional chaining on purpose: the panel serves every plugin
+                // concatenated in one /plugins.js module, so a global missing on
+                // an older panel must leave undefined components rather than
+                // throw at module evaluation and take the other plugins down.
                 const importRegex = new RegExp(
                     `import\\s*\\{([^}]+)\\}\\s*from\\s*["']${moduleId}["'];?`,
                     'g'
                 );
                 result = result.replace(importRegex, (_: string, imports: string) => {
-                    const importList = imports.split(',').map(i => i.trim());
-                    const destructure = importList.map(i => {
-                        const parts = i.split(/\s+as\s+/);
-                        if (parts.length === 2) {
-                            return `${parts[0].trim()}: ${parts[1].trim()}`;
-                        }
-                        return i;
-                    }).join(', ');
-                    return `const { ${destructure} } = ${globalVar};`;
+                    const assignments = imports
+                        .split(',')
+                        .map((i) => i.trim())
+                        .filter(Boolean)
+                        .map((i) => {
+                            const [original, alias = original] = i.split(/\s+as\s+/).map((s) => s.trim());
+                            return `${alias} = ${globalVar}?.${original}`;
+                        });
+                    return `const ${assignments.join(', ')};`;
                 });
 
                 const importStarRegex = new RegExp(
@@ -70,6 +81,11 @@ function globalExternalsPlugin(): Rollup.Plugin {
                 result = result.replace(importDefaultRegex, (_, name) => {
                     return `const ${name} = ${globalVar};`;
                 });
+
+                // A bare side-effect import is what the bundler emits when every
+                // named import of an external got tree-shaken. The panel cannot
+                // resolve the specifier, so drop it.
+                result = result.replace(new RegExp(`import\\s*["']${moduleId}["'];?`, 'g'), '');
             }
             return { code: result, map: null };
         }
@@ -83,14 +99,90 @@ function wrapInIIFEPlugin(): Rollup.Plugin {
             for (const fileName of Object.keys(bundle)) {
                 const chunk = bundle[fileName];
                 if (chunk.type === 'chunk' && chunk.code) {
-                    const exportMatch = chunk.code.match(/export\s*\{\s*(\w+)\s+as\s+(\w+)\s*\};?\s*$/s);
+                    // Both spellings the bundler may emit: `export { x as y }` and `export { x }`.
+                    const exportMatch = chunk.code.match(/export\s*\{\s*(\w+)(?:\s+as\s+(\w+))?\s*\};?\s*$/s);
                     if (exportMatch) {
-                        const [fullExport, internalName, exportedName] = exportMatch;
+                        const [fullExport, internalName, alias] = exportMatch;
+                        const exportedName = alias ?? internalName;
                         const codeWithoutExport = chunk.code.replace(fullExport, '').trim();
                         chunk.code = `const ${exportedName} = (function() {\n${codeWithoutExport}\nreturn ${internalName};\n})();\nexport { ${exportedName} };`;
                     }
                 }
             }
+        }
+    };
+}
+
+/**
+ * Selectors of a stylesheet that do not belong to the plugin's namespace.
+ *
+ * GameAP injects plugin CSS panel-wide, so every rule must be scoped to the
+ * plugin: each selector has to contain `.gce-` (which still admits
+ * `.gce-root .n-form-item` and `.n-tabs-pane-wrapper:has(.gce-root)`), and the
+ * only at-rules allowed are conditional groups. Written as a character walk so
+ * it also reads the minified output; a string literal containing braces would
+ * confuse it, so keep the stylesheet flat.
+ */
+function unprefixedSelectors(css: string): string[] {
+    const offenders: string[] = [];
+    let head = '';
+    for (const ch of css.replace(/\/\*[\s\S]*?\*\//g, '')) {
+        if (ch === '{') {
+            const rule = head.trim();
+            head = '';
+            if (rule.startsWith('@')) {
+                if (!/^@(media|supports|container)\b/.test(rule)) offenders.push(rule);
+                continue;
+            }
+            for (const selector of rule.split(',')) {
+                if (!selector.includes('.gce-')) offenders.push(selector.trim());
+            }
+        } else if (ch === '}' || ch === ';') {
+            head = '';
+        } else {
+            head += ch;
+        }
+    }
+    return offenders;
+}
+
+/**
+ * Fail the build when the bundle is not in the shape the panel's loader needs.
+ *
+ * The loader wraps /plugins.js in a Blob module, so a surviving import of an
+ * externalised package is a load error for every plugin at once; the IIFE keeps
+ * this plugin's top-level names from colliding with the other plugins in that
+ * one module; and the CSS namespace is what keeps the injected styles from
+ * touching the panel. None of this is caught by tests or the type checker.
+ */
+function assertBundleShapePlugin(): Rollup.Plugin {
+    return {
+        name: 'assert-bundle-shape',
+        writeBundle(options) {
+            const dir = options.dir ?? resolve(import.meta.dirname, 'dist');
+            const js = readFileSync(resolve(dir, 'plugin.js'), 'utf8');
+            const problems: string[] = [];
+
+            const imports = js.match(/^\s*import\b.*$/gm) ?? [];
+            if (imports.length) problems.push(`plugin.js still imports: ${imports.map((l) => l.trim()).join(' | ')}`);
+            const exports = (js.match(/^\s*export\b.*$/gm) ?? []).map((l) => l.trim());
+            if (exports.join('\n') !== 'export { gameConfigPlugin };') problems.push(`plugin.js exports: ${exports.join(' | ') || '(none)'}`);
+            if (!/\}\)\(\);\s*export \{ gameConfigPlugin \};\s*$/.test(js)) problems.push('plugin.js is not wrapped in an IIFE');
+            if (!js.includes('window.Vue?.')) problems.push('plugin.js does not read Vue from the panel global');
+
+            const cssPath = resolve(dir, 'plugin.css');
+            let css = '';
+            try {
+                css = readFileSync(cssPath, 'utf8');
+            } catch {
+                problems.push('plugin.css was not emitted (src/index.ts must import src/styles.css)');
+            }
+            if (css.includes('@import')) problems.push('plugin.css contains @import');
+            if (css.includes('revert-layer')) problems.push('plugin.css contains revert-layer');
+            const offenders = unprefixedSelectors(css);
+            if (offenders.length) problems.push(`plugin.css selectors outside the gce- namespace: ${offenders.join(' | ')}`);
+
+            if (problems.length) throw new Error(`Plugin bundle check failed:\n - ${problems.join('\n - ')}`);
         }
     };
 }
@@ -103,10 +195,9 @@ export default defineConfig({
     // the repo root land dist/ in frontend/ rather than at the root. outDir and
     // the paths below all hang off this.
     root: import.meta.dirname,
-    // Tailwind runs as a Vite plugin rather than through postcss.config.js -
-    // one less config file, and no standalone postcss/autoprefixer deps. CSS
-    // still lands in dist/plugin.css via build.lib.cssFileName below.
-    plugins: [vue(), tailwindcss()],
+    // No CSS framework: the styles are plain CSS in src/styles.css, imported
+    // once by src/index.ts so Vite emits them as dist/plugin.css.
+    plugins: [vue()],
     define: {
         __PLUGIN_VERSION__: JSON.stringify(pluginVersion),
     },
@@ -128,8 +219,8 @@ export default defineConfig({
             // es lib output: externals stay as `import` statements that
             // globalExternalsPlugin rewrites to window globals. (output.globals
             // only applies to iife/umd, so there's nothing to set here.)
-            external: ['vue', 'axios'],
-            plugins: [globalExternalsPlugin(), wrapInIIFEPlugin()],
+            external: Object.keys(GLOBALS),
+            plugins: [globalExternalsPlugin(), wrapInIIFEPlugin(), assertBundleShapePlugin()],
         },
     },
     resolve: {

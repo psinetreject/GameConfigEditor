@@ -1,0 +1,115 @@
+/*
+ * Game Config Editor - plugin styles.
+ *
+ * GameAP injects every plugin's CSS panel-wide (one <style> in <head>), so this
+ * file follows the plugin conventions: every class is prefixed `gce-`, no bare
+ * element selectors, no !important, no position: fixed. The panel's Tailwind
+ * build does not scan plugin sources, so templates only use utilities the panel
+ * ships (flex, gap-2, mb-3, text-muted, ...); anything responsive or absent from
+ * that build lives here. Colours are the panel's --gameap-* tokens, which flip on
+ * html.dark, so there are no dark variants.
+ */
+
+/* Monospace for keys and raw-typed values (the panel purges font-mono). */
+.gce-mono,
+.gce-mono .n-input__input-el {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+/* The config key beside a field label. Muted and small so the human label reads
+   first; wraps anywhere because YAML paths and INI addresses can be long. */
+.gce-key {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--gameap-text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* Section heading of a field group: icon + title at the panel's card-title
+   scale (mirrors plugin-respawn's section heading). No cards, no h1/h2. */
+.gce-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+}
+
+.gce-section-hint {
+    margin: -0.25rem 0 0.75rem;
+    font-size: 0.75rem;
+    color: var(--gameap-text-muted);
+}
+
+/* The rule between two groups. naive-ui's own 24px on both sides is more air
+   than a long form wants, and the space is asymmetric: a heading follows the
+   rule, so it gets the wider half. Written with .n-divider to outrank naive-ui's
+   margin, a two-class rule injected when the component mounts. */
+.gce-section-divider.n-divider:not(.n-divider--vertical) {
+    margin-top: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Field grid: one column, two from 768px (md:grid-cols-2 is not in the panel build). */
+.gce-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 1.5rem;
+    row-gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .gce-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.gce-field {
+    min-width: 0;
+}
+
+/* Save bar of a server tab, styled like the panel's GFixedBottomBar (py-3 px-4,
+   surface background, top border) but sticky instead of fixed, so it scrolls
+   with the page and never covers the panel's own chrome. The file-manager modal
+   draws its own footer, so the editor only renders this when embedded. */
+.gce-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--gameap-surface);
+    border-top: 1px solid var(--gameap-border);
+}
+
+/* Sticky needs the page to be the nearest scroll container. The panel's server
+   page uses animated n-tabs, and naive-ui wraps every pane in
+   .n-tabs-pane-wrapper { overflow: hidden } for the slide transition - an
+   overflow: hidden ancestor is a scroll container, so the bar would pin to the
+   end of the pane's content instead of the viewport. `clip` clips exactly the
+   same for the animation but creates no scroll container. Scoped by :has() to
+   the wrapper that actually holds one of this plugin's tabs. */
+.n-tabs-pane-wrapper:has(.gce-root) {
+    overflow: clip;
+}
+
+/* Raw-text fallback: monospace, tall enough to edit in the tab (the page
+   scrolls); in the modal, fill the height the file manager publishes for a
+   plugin editor, less the notice above it (the container scrolls the rest). */
+.gce-raw .n-input__textarea-el {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    tab-size: 4;
+    min-height: 24rem;
+}
+
+.gce-raw--modal .n-input__textarea-el {
+    min-height: calc(var(--gameap-plugin-editor-height, calc(100vh - 250px)) - 7rem);
+}

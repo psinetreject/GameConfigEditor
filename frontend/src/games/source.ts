@@ -23,7 +23,7 @@ const shared: Group[] = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('hostname', 'Server name (browser)'),
             t('sv_password', 'Join password (empty = public)'),
@@ -36,7 +36,7 @@ const shared: Group[] = [
     {
         id: 'gameplay',
         title: 'Gameplay',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             b('sv_cheats', 'Allow cheats'),
             b('sv_pausable', 'Allow pausing'),
@@ -52,13 +52,13 @@ const shared: Group[] = [
     {
         id: 'voice',
         title: 'Voice',
-        icon: 'fa-solid fa-microphone',
+        icon: 'microphone',
         fields: [b('sv_voiceenable', 'Enable voice chat'), b('sv_alltalk', 'All-talk (both teams)')],
     },
     {
         id: 'network',
         title: 'Downloads & Network',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             t('sv_downloadurl', 'Fast-download URL'),
             b('sv_allowdownload', 'Allow client downloads'),
@@ -77,7 +77,7 @@ const extras: Record<string, Group> = {
     csgo: {
         id: 'game-cs',
         title: 'Counter-Strike',
-        icon: 'fa-solid fa-crosshairs',
+        icon: 'crosshairs',
         fields: [
             n('mp_maxrounds', 'Max rounds'),
             n('mp_roundtime', 'Round time (min)'),
@@ -96,7 +96,7 @@ const extras: Record<string, Group> = {
     tf2: {
         id: 'game-tf2',
         title: 'Team Fortress 2',
-        icon: 'fa-solid fa-hat-cowboy',
+        icon: 'hat-cowboy',
         fields: [
             n('mp_teams_unbalance_limit', 'Team unbalance limit'),
             b('mp_tournament', 'Tournament mode'),
@@ -109,7 +109,7 @@ const extras: Record<string, Group> = {
     l4d2: {
         id: 'game-l4d',
         title: 'Left 4 Dead',
-        icon: 'fa-solid fa-biohazard',
+        icon: 'biohazard',
         fields: [
             sel('z_difficulty', 'Difficulty', ['Easy', 'Normal', 'Hard', 'Impossible']),
             t('mp_gamemode', 'Game mode'),
@@ -120,7 +120,7 @@ const extras: Record<string, Group> = {
     garrysmod: {
         id: 'game-gmod',
         title: "Garry's Mod",
-        icon: 'fa-solid fa-cubes',
+        icon: 'cubes',
         fields: [
             t('gamemode', 'Gamemode (often set by launch arg)'),
             n('sbox_maxprops', 'Max props / player'),
@@ -135,13 +135,13 @@ const extras: Record<string, Group> = {
     dods: {
         id: 'game-dods',
         title: 'Day of Defeat: Source',
-        icon: 'fa-solid fa-flag',
+        icon: 'flag',
         fields: [n('mp_limitteams', 'Team size limit'), b('dod_bonusround', 'Bonus round')],
     },
     hl2mp: {
         id: 'game-hl2mp',
         title: 'Half-Life 2: Deathmatch',
-        icon: 'fa-solid fa-gun',
+        icon: 'gun',
         fields: [b('mp_weaponstay', 'Weapons stay')],
     },
 };

@@ -6,7 +6,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'server',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('motd', 'MOTD (server list message)'),
             n('server-port', 'Server port'),
@@ -24,7 +24,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'world',
         title: 'World & Gameplay',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             t('level-name', 'World folder name'),
             t('level-seed', 'World seed'),
@@ -56,7 +56,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'performance',
         title: 'Performance',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('view-distance', 'View distance (chunks)'),
             n('simulation-distance', 'Simulation distance (chunks)'),
@@ -74,7 +74,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'network',
         title: 'Networking / RCON / Query',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             b('enable-rcon', 'RCON enabled'),
             n('rcon.port', 'RCON port'),
@@ -91,7 +91,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'resourcepack',
         title: 'Resource Pack',
-        icon: 'fa-solid fa-box-open',
+        icon: 'box-open',
         fields: [
             t('resource-pack', 'Resource pack URL'),
             t('resource-pack-sha1', 'Resource pack SHA-1'),
@@ -103,7 +103,7 @@ export const minecraftSchema: Schema = [
     {
         id: 'moderation',
         title: 'Chat & Moderation',
-        icon: 'fa-solid fa-comment-slash',
+        icon: 'comment-slash',
         fields: [
             b('enforce-secure-profile', 'Require signed chat (secure profile)'),
             b('log-ips', 'Log player IPs'),

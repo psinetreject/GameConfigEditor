@@ -14,7 +14,7 @@ export const mtaSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('servername', 'Server name (browser)'),
             t('password', 'Join password (blank = public)'),
@@ -26,7 +26,7 @@ export const mtaSchema: Schema = [
     {
         id: 'http',
         title: 'HTTP & Downloads',
-        icon: 'fa-solid fa-download',
+        icon: 'download',
         fields: [
             n('httpport', 'HTTP port (TCP)'),
             t('httpdownloadurl', 'External download URL'),
@@ -37,7 +37,7 @@ export const mtaSchema: Schema = [
     {
         id: 'listing',
         title: 'Listing & Clients',
-        icon: 'fa-solid fa-satellite-dish',
+        icon: 'satellite-dish',
         fields: [
             b('ase', 'Announce to the master list'),
             b('donotbroadcastlan', 'Do not broadcast on LAN'),
@@ -48,7 +48,7 @@ export const mtaSchema: Schema = [
     {
         id: 'sync',
         title: 'Sync & Bandwidth',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('bandwidth_reduction', 'Bandwidth reduction mode'),
             n('player_sync_interval', 'Player sync interval (ms)'),
@@ -62,7 +62,7 @@ export const mtaSchema: Schema = [
     {
         id: 'voice',
         title: 'Voice',
-        icon: 'fa-solid fa-microphone',
+        icon: 'microphone',
         fields: [
             b('voice', 'Enable voice chat'),
             n('voice_samplerate', 'Voice sample rate'),
@@ -72,7 +72,7 @@ export const mtaSchema: Schema = [
     {
         id: 'logging',
         title: 'Logging & Backups',
-        icon: 'fa-solid fa-file-lines',
+        icon: 'file-lines',
         fields: [
             t('logfile', 'Server log file'),
             t('scriptdebuglogfile', 'Script debug log (blank = off)'),

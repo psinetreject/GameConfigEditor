@@ -18,7 +18,7 @@ export const bukkitSchema: Schema = [
     {
         id: 'settings',
         title: 'Server Settings',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             settings.t('shutdown-message', 'Shutdown / kick message'),
             settings.b('allow-end', 'Allow the End dimension'),
@@ -35,7 +35,7 @@ export const bukkitSchema: Schema = [
     {
         id: 'spawn-limits',
         title: 'Mob Spawn Limits (per world, per player)',
-        icon: 'fa-solid fa-ghost',
+        icon: 'ghost',
         fields: [
             limits.n('monsters', 'Monsters'),
             limits.n('animals', 'Animals'),
@@ -49,7 +49,7 @@ export const bukkitSchema: Schema = [
     {
         id: 'ticks-per',
         title: 'Spawn & Save Intervals (ticks)',
-        icon: 'fa-solid fa-stopwatch',
+        icon: 'stopwatch',
         fields: [
             ticks.n('monster-spawns', 'Monster spawn interval'),
             ticks.n('animal-spawns', 'Animal spawn interval'),
@@ -64,7 +64,7 @@ export const bukkitSchema: Schema = [
     {
         id: 'chunk-gc',
         title: 'Chunk Garbage Collection',
-        icon: 'fa-solid fa-broom',
+        icon: 'broom',
         fields: [gc.n('period-in-ticks', 'Collection period (ticks)')],
     },
 ];

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref, computed } from 'vue';
 import axios from 'axios';
+import { NAlert, NRadioButton, NRadioGroup } from 'naive-ui';
 import type { ServerTabProps } from '@gameap/plugin-sdk';
-import Banner from './Banner.vue';
 import ConfigEditor from './ConfigEditor.vue';
 import { errMsg, useAsyncPanel } from '../composables/useAsyncPanel';
+import { confirmDiscard, showSuccess, showWarning } from '../lib/notify';
 import {
     gamesFor,
     configPath,
@@ -30,6 +31,7 @@ const props = defineProps<ServerTabProps>();
 const gameId = props.server?.game_id;
 const configs = gamesFor(gameId);
 const selected = ref<GameConfig | null>(configs[0] ?? null);
+const unsupportedText = `No structured config editor is available for this game${gameId ? ` (${gameId})` : ''} yet.`;
 
 const { loading, saving, error, notice, reset, beginLoad } = useAsyncPanel();
 // Only true after a failed LOAD (not a failed save) - gates the game's loadHint.
@@ -162,7 +164,9 @@ async function onSave(newContent: string) {
         content.value = acknowledgedContent;
         editorDirty.value = false;
         reloadKey.value++;
-        notice.value = verified ? 'Saved.' : 'Saved, but the server copy could not be re-read for verification.';
+        // A toast where the panel offers one; the inline alert is the fallback.
+        const message = verified ? 'Saved.' : 'Saved, but the server copy could not be re-read for verification.';
+        if (!(verified ? showSuccess(message) : showWarning(message))) notice.value = message;
     } catch (e: any) {
         failureKind.value = 'save';
         error.value = `Couldn't save ${cfg.fileName}: ${errMsg(e, 'request failed')}. Use Save to retry with your latest draft.`;
@@ -171,20 +175,34 @@ async function onSave(newContent: string) {
     }
 }
 
-function retry() {
+async function retry() {
     if (failureKind.value === 'conflict') {
-        if (!window.confirm('Reloading will discard your unsaved draft. Continue?')) return;
+        if (!(await confirmDiscard('Reloading will discard your unsaved draft. Continue?'))) return;
         editorDirty.value = false;
     }
-    load();
+    void load();
 }
 
-function selectConfig(cfg: GameConfig) {
+async function reload() {
+    if (saving.value) return;
+    if (editorDirty.value && !(await confirmDiscard('Reloading will discard your unsaved draft. Continue?'))) return;
+    editorDirty.value = false;
+    void load();
+}
+
+async function selectConfig(cfg: GameConfig) {
     if (selected.value === cfg || saving.value) return;
-    if (editorDirty.value && !window.confirm('Discard unsaved changes and switch files?')) return;
+    if (editorDirty.value && !(await confirmDiscard('Discard unsaved changes and switch files?'))) return;
+    // A reload or save can land while the dialog is open - check again.
+    if (selected.value === cfg || saving.value) return;
     editorDirty.value = false;
     selected.value = cfg;
-    load();
+    void load();
+}
+
+function selectByName(fileName: string | number | boolean) {
+    const cfg = configs.find((candidate) => candidate.fileName === fileName);
+    if (cfg) void selectConfig(cfg);
 }
 
 if (selected.value) load();
@@ -193,60 +211,61 @@ if (selected.value) load();
 <template>
     <!-- No `h-full`: the panel renders plugin tabs in a height-less n-tab-pane,
          so a percentage height collapses to auto and only confuses the editor's
-         own layout. Flow at natural height and let the page scroll instead. -->
-    <div class="pws-tab flex flex-col min-h-[420px] text-sm text-stone-800 dark:text-stone-200">
-        <div v-if="configs.length === 0" class="p-4 text-stone-500 dark:text-stone-400">
-            No structured config editor is available for this game<span v-if="gameId"> (<code>{{ gameId }}</code>)</span>
-            yet.
+         own layout. Flow at natural height and let the page scroll; the editor's
+         sticky bar keeps Save in reach. -->
+    <div class="gce-root text-body">
+        <div v-if="configs.length === 0" class="py-6">
+            <GEmpty :description="unsupportedText" />
         </div>
 
         <template v-else>
-            <!-- file selector when a game has more than one config file -->
-            <div v-if="configs.length > 1" class="m-2 flex flex-wrap gap-1">
-                <button
-                    v-for="cfg in configs"
-                    :key="cfg.fileName"
-                    class="rounded px-2 py-1 text-xs border"
-                    :class="
-                        selected === cfg
-                            ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
-                            : 'border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
-                    "
+            <!-- toolbar: the file switcher when a game has more than one config
+                 file, and the refresh button last -->
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <n-radio-group
+                    v-if="configs.length > 1"
+                    :value="selected?.fileName"
+                    size="small"
                     :disabled="saving"
-                    @click="selectConfig(cfg)"
+                    @update:value="selectByName"
                 >
-                    {{ cfg.fileName }}
-                </button>
+                    <n-radio-button
+                        v-for="cfg in configs"
+                        :key="cfg.fileName"
+                        :value="cfg.fileName"
+                        :label="cfg.fileName"
+                        data-test="config-file"
+                    />
+                </n-radio-group>
+                <GButton
+                    color="white"
+                    size="small"
+                    :loading="loading"
+                    :disabled="saving"
+                    data-test="reload"
+                    @click="reload"
+                >
+                    <GIcon name="refresh" />
+                    <span class="ml-1">Reload</span>
+                </GButton>
             </div>
 
-            <Banner v-if="notice" class="m-2" tone="success" icon="fa-solid fa-check">{{ notice }}</Banner>
+            <!-- only shown where the panel offers no toast -->
+            <n-alert v-if="notice" type="success" :show-icon="true" class="mb-3">{{ notice }}</n-alert>
 
-            <Banner v-if="error" class="m-2" tone="danger" icon="fa-solid fa-circle-exclamation">
+            <n-alert v-if="error" type="error" :show-icon="true" class="mb-3">
                 {{ error }}
-                <template #action>
-                    <button
-                        v-if="failureKind !== 'save'"
-                        class="shrink-0 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                        @click="retry"
-                    >
+                <p v-if="showLoadHint && selected?.loadHint" class="mt-2 text-xs whitespace-pre-line">
+                    {{ selected.loadHint }}
+                </p>
+                <div v-if="failureKind !== 'save'" class="mt-2">
+                    <GButton color="black" size="small" :loading="loading" data-test="retry" @click="retry">
                         {{ failureKind === 'conflict' ? 'Reload' : 'Retry' }}
-                    </button>
-                </template>
-                <template #detail>
-                    <p
-                        v-if="showLoadHint && selected?.loadHint"
-                        class="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-red-600/90 dark:text-red-300/80"
-                    >
-                        <i class="fa-solid fa-circle-info mr-1"></i>{{ selected.loadHint }}
-                    </p>
-                </template>
-            </Banner>
+                    </GButton>
+                </div>
+            </n-alert>
 
-            <div v-if="loading" class="p-6 text-center text-stone-500 dark:text-stone-400">
-                <i class="fa-solid fa-spinner fa-spin mr-1"></i>Loading {{ selected?.fileName }}...
-            </div>
-
-            <div v-if="saving" class="px-3 py-1 text-xs text-stone-400">Saving...</div>
+            <div v-if="loading" class="py-10"><Loading /></div>
 
             <ConfigEditor
                 v-if="!loading && content !== null && selected"

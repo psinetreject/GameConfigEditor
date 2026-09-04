@@ -24,7 +24,7 @@ const shared: Group[] = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('hostname', 'Server name (browser)'),
             t('password', 'Join password (blank = public)'),
@@ -40,7 +40,7 @@ const shared: Group[] = [
     {
         id: 'security',
         title: 'Security & Verification',
-        icon: 'fa-solid fa-shield-halved',
+        icon: 'shield-halved',
         fields: [
             sel('verifySignatures', 'Signature verification', ['0', '1', '2']),
             n('requiredBuild', 'Required client build (0 = any)'),
@@ -52,7 +52,7 @@ const shared: Group[] = [
     {
         id: 'gameplay',
         title: 'Gameplay & Voting',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             b('persistent', 'Persistent mission'),
             b('disableVoN', 'Disable voice over network'),
@@ -65,7 +65,7 @@ const shared: Group[] = [
     {
         id: 'network',
         title: 'Network Limits',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('disconnectTimeout', 'Disconnect timeout (s)'),
             n('maxDesync', 'Max desync before kick'),
@@ -77,7 +77,7 @@ const shared: Group[] = [
     {
         id: 'logging',
         title: 'Logging',
-        icon: 'fa-solid fa-file-lines',
+        icon: 'file-lines',
         fields: [
             t('logFile', 'Log file'),
             t('timeStampFormat', 'Timestamp format (none/short/full)'),

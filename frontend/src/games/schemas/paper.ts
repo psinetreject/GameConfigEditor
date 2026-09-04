@@ -31,7 +31,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'proxies',
         title: 'Proxy (Velocity / BungeeCord)',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             velocity.b('enabled', 'Velocity modern forwarding'),
             velocity.b('online-mode', 'Velocity online mode'),
@@ -43,7 +43,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'watchdog',
         title: 'Watchdog',
-        icon: 'fa-solid fa-heart-pulse',
+        icon: 'heart-pulse',
         fields: [
             watchdog.n('early-warning-delay', 'Early warning delay (ms)'),
             watchdog.n('early-warning-every', 'Early warning interval (ms)'),
@@ -52,7 +52,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'limits',
         title: 'Spam & Packet Limits',
-        icon: 'fa-solid fa-shield-halved',
+        icon: 'shield-halved',
         fields: [
             spam.n('incoming-packet-threshold', 'Incoming packet threshold'),
             spam.n('tab-spam-increment', 'Tab spam increment'),
@@ -67,7 +67,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'performance',
         title: 'Chunks & Performance',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             chunks.t('gen-parallelism', 'Generation parallelism'),
             chunks.n('io-threads', 'Chunk IO threads (-1 = auto)'),
@@ -85,7 +85,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'gameplay',
         title: 'Gameplay & Console',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             collisions.b('enable-player-collisions', 'Player collisions'),
             misc.b('use-alternative-luck-formula', 'Alternative luck formula'),
@@ -98,7 +98,7 @@ export const paperGlobalSchema: Schema = [
     {
         id: 'unsupported',
         title: 'Unsupported Settings (exploits)',
-        icon: 'fa-solid fa-triangle-exclamation',
+        icon: 'warning',
         fields: [
             unsupported.b('allow-headless-pistons', 'Allow headless pistons'),
             unsupported.b('allow-piston-duplication', 'Allow piston duplication'),

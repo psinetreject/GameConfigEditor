@@ -23,7 +23,7 @@ export const spigotSchema: Schema = [
     {
         id: 'settings',
         title: 'Server Settings',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             settings.b('bungeecord', 'BungeeCord mode (proxy IP forwarding)'),
             settings.n('netty-threads', 'Netty threads'),
@@ -42,7 +42,7 @@ export const spigotSchema: Schema = [
     {
         id: 'messages',
         title: 'Messages',
-        icon: 'fa-solid fa-comment',
+        icon: 'comment',
         fields: [
             messages.t('whitelist', 'Not whitelisted'),
             messages.t('unknown-command', 'Unknown command'),
@@ -55,7 +55,7 @@ export const spigotSchema: Schema = [
     {
         id: 'commands',
         title: 'Commands',
-        icon: 'fa-solid fa-terminal',
+        icon: 'terminal',
         fields: [
             commands.b('log', 'Log command usage'),
             commands.b('silent-commandblock-console', 'Silence command blocks in the console'),
@@ -66,7 +66,7 @@ export const spigotSchema: Schema = [
     {
         id: 'world',
         title: 'World Defaults',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             w.t('view-distance', 'View distance (or "default")'),
             w.t('simulation-distance', 'Simulation distance (or "default")'),
@@ -87,7 +87,7 @@ export const spigotSchema: Schema = [
     {
         id: 'activation-range',
         title: 'Entity Activation Range',
-        icon: 'fa-solid fa-bolt',
+        icon: 'bolt',
         fields: [
             activation.n('animals', 'Animals'),
             activation.n('monsters', 'Monsters'),
@@ -102,7 +102,7 @@ export const spigotSchema: Schema = [
     {
         id: 'tracking-range',
         title: 'Entity Tracking Range',
-        icon: 'fa-solid fa-binoculars',
+        icon: 'binoculars',
         fields: [
             tracking.n('players', 'Players'),
             tracking.n('animals', 'Animals'),
@@ -115,7 +115,7 @@ export const spigotSchema: Schema = [
     {
         id: 'tuning',
         title: 'Merge Radius & Tick Budget',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             merge.n('item', 'Item merge radius'),
             merge.n('exp', 'Experience orb merge radius'),

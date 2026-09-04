@@ -14,7 +14,7 @@ export const theForestSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('serverName', 'Server name (browser)'),
             t('serverPassword', 'Join password (blank = none)'),
@@ -27,7 +27,7 @@ export const theForestSchema: Schema = [
     {
         id: 'network',
         title: 'Network',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             t('serverIP', 'Bind IP (internal address behind a router)'),
             n('serverSteamPort', 'Steam communication port'),
@@ -39,7 +39,7 @@ export const theForestSchema: Schema = [
     {
         id: 'world',
         title: 'World & Saves',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             sel('difficulty', 'Difficulty', ['Peaceful', 'Normal', 'Hard']),
             sel('initType', 'New game or continue', ['New', 'Continue']),
@@ -51,7 +51,7 @@ export const theForestSchema: Schema = [
     {
         id: 'rules',
         title: 'Rules & Modes',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             b('veganMode', 'Vegan mode (no enemies)'),
             b('vegetarianMode', 'Vegetarian mode (fewer enemies)'),
@@ -66,7 +66,7 @@ export const theForestSchema: Schema = [
     {
         id: 'perf',
         title: 'Logging & Performance',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             b('showLogs', 'Show event log'),
             n('targetFpsIdle', 'Target FPS when idle'),

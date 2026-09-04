@@ -14,7 +14,7 @@ export const rokSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('ServerName', 'Server name (supports [RRGGBB] colour tags)'),
             t('Password', 'Join password (blank = public)'),
@@ -26,7 +26,7 @@ export const rokSchema: Schema = [
     {
         id: 'world',
         title: 'World & Saving',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             sel('GameMode', 'Game mode', ['Survival', 'Creative']),
             n('WorldSlot', 'World slot (-1 creates a new world)'),

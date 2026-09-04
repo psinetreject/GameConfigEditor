@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { ComputedRef } from 'vue';
+import { NAlert, NDivider, NForm, NFormItem } from 'naive-ui';
 import type { FileEditorProps, ServerData } from '@gameap/plugin-sdk';
 import { useServer } from '@gameap/plugin-sdk';
-import Banner from './Banner.vue';
 import FieldInput from './FieldInput.vue';
 import { useConfigForm } from '../composables/useConfigForm';
 import { resolve, type GameConfig } from '../games/registry';
@@ -99,6 +99,10 @@ function onSave() {
 function onClose() {
     emit('close');
 }
+function onRawInput(value: string) {
+    rawText.value = value;
+    rawDirty.value = true;
+}
 defineExpose({ save: onSave, close: onClose });
 
 const noGame = !game;
@@ -109,125 +113,126 @@ const note = game?.note;
 
 <template>
     <!--
-      Height handling differs by host. GameAP's PluginEditorModal gives this a
-      bounded box, so the body scrolls internally and the footer pins. A server
-      tab does not: the panel renders plugin tabs in an n-tab-pane with no
-      height, so `h-full` resolves against an indefinite parent, collapses to
-      auto, and the footer lands at the bottom of a ~3000px page - out of reach.
-      Embedded therefore flows at natural height and lets the PAGE scroll, with
-      a sticky footer so Save rides along.
+      Host layout differs. GameAP's PluginEditorModal caps this at
+      --gameap-plugin-editor-height, scrolls whatever is taller, and draws its
+      own Cancel/Submit footer (Submit calls the exposed save()), so in that mode
+      the editor renders no footer and just flows. A server tab is the opposite:
+      the panel renders plugin tabs in an n-tab-pane with no height, so `h-full`
+      would resolve against an indefinite parent and collapse, and a plain footer
+      would land at the bottom of a ~3000px page - out of reach. Embedded
+      therefore flows at natural height, lets the PAGE scroll, and pins Save in a
+      sticky bar (see .gce-actions in styles.css for the n-tabs overflow note).
     -->
-    <div
-        class="pws-root flex flex-col text-sm text-stone-800 dark:text-stone-200"
-        :class="embedded ? '' : 'h-full max-h-full'"
-    >
+    <div class="gce-editor text-body">
         <!-- running-server warning -->
-        <Banner v-if="serverRunning" class="m-2" tone="warning" icon="fa-solid fa-triangle-exclamation">
+        <n-alert
+            v-if="serverRunning"
+            type="warning"
+            :show-icon="true"
+            class="mb-3"
+            title="This server appears to be running"
+        >
             <template v-if="game?.stopWarning"
-                >This server appears to be RUNNING. {{ title }} overwrites this file on shutdown, so stop the server
-                before saving or your changes will be lost.</template
+                >{{ title }} overwrites this file on shutdown, so stop the server before saving or your changes will
+                be lost.</template
             >
             <template v-else
-                >This server appears to be RUNNING. Some games only read this file at startup - restart the server
-                for changes to take effect.</template
+                >Some games only read this file at startup - restart the server for changes to take effect.</template
             >
-        </Banner>
+        </n-alert>
 
         <!-- raw fallback -->
-        <div v-if="parseFailed" class="flex flex-col p-2 gap-2" :class="embedded ? '' : 'flex-1 min-h-0'">
-            <div class="text-red-600 dark:text-red-400 text-xs">
-                <template v-if="noGame"
-                    >No structured editor is registered for this file. Editing raw text instead.</template
-                >
-                <template v-else
-                    >Could not parse {{ props.fileName }} in the expected format. Editing raw text instead.</template
-                >
-            </div>
-            <textarea
-                v-model="rawText"
-                spellcheck="false"
-                class="w-full font-mono text-xs p-2 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 outline-none disabled:opacity-60"
-                :class="embedded ? 'min-h-[60vh]' : 'flex-1'"
+        <template v-if="parseFailed">
+            <n-alert type="warning" :show-icon="true" class="mb-3" title="Editing as raw text">
+                <template v-if="noGame">No structured editor is registered for this file.</template>
+                <template v-else>Could not parse {{ props.fileName }} in the expected format.</template>
+            </n-alert>
+            <GInput
+                type="textarea"
+                class="gce-raw"
+                :class="embedded ? '' : 'gce-raw--modal'"
+                :value="rawText"
                 :disabled="saving"
-                @input="rawDirty = true"
-            ></textarea>
-        </div>
+                placeholder=""
+                :rows="24"
+                :autosize="false"
+                :input-props="{ spellcheck: false }"
+                @update:value="onRawInput"
+            />
+        </template>
 
         <!-- structured form -->
-        <div v-else class="p-3 space-y-6" :class="embedded ? '' : 'flex-1 overflow-auto min-h-0'">
+        <template v-else>
             <!-- informational note (e.g. CS2 config layering) -->
-            <Banner v-if="note" tone="info" icon="fa-solid fa-circle-info">{{ note }}</Banner>
+            <n-alert v-if="note" type="info" :show-icon="true" class="mb-3">{{ note }}</n-alert>
 
             <!-- structured write failure -->
-            <Banner v-if="writeError" tone="warning" icon="fa-solid fa-triangle-exclamation">
-                {{ writeError }}
-            </Banner>
-            <Banner v-if="relayError" tone="warning" icon="fa-solid fa-triangle-exclamation">
-                {{ relayError }}
-            </Banner>
+            <n-alert v-if="writeError" type="warning" :show-icon="true" class="mb-3">{{ writeError }}</n-alert>
+            <n-alert v-if="relayError" type="warning" :show-icon="true" class="mb-3">{{ relayError }}</n-alert>
 
             <!-- relay guardrail -->
-            <Banner v-if="relayIpSet" tone="caution" icon="fa-solid fa-shield-halved">
-                A public IP is set. For a WireGuard relay or an unlisted server this advertises your real IP to the
-                community browser. Clear it unless you intend to be publicly listed.
-                <template #action>
-                    <button
-                        :disabled="saving"
-                        class="shrink-0 rounded bg-amber-600 px-2 py-1 text-white text-xs hover:bg-amber-700 disabled:opacity-50"
-                        @click="clearRelay"
-                    >
+            <n-alert v-if="relayIpSet" type="warning" :show-icon="true" class="mb-3" title="A public IP is set">
+                For a WireGuard relay or an unlisted server this advertises your real IP to the community browser.
+                Clear it unless you intend to be publicly listed.
+                <div class="mt-2">
+                    <GButton color="black" size="small" :disabled="saving" @click="clearRelay">
                         Clear public IP{{ game?.relayGuard?.portKey ? ' &amp; port' : '' }}
-                    </button>
-                </template>
-            </Banner>
-
-            <section v-for="group in groups" :key="group.id">
-                <h3 class="font-semibold text-stone-600 dark:text-stone-400 mb-2 flex items-center gap-2">
-                    <i :class="group.icon"></i>{{ group.title }}
-                </h3>
-                <p v-if="group.id === 'advanced'" class="mb-2 text-xs text-stone-400">
-                    Keys not in the schema - edited as raw values, preserved verbatim.
-                </p>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                    <label v-for="f in group.fields" :key="f.key" class="flex flex-col gap-1">
-                        <span class="text-xs text-stone-500 dark:text-stone-400">
-                            {{ f.label }} <code class="opacity-60">{{ f.key }}</code>
-                        </span>
-                        <FieldInput
-                            v-model="models[f.key].value"
-                            :type="f.type"
-                            :options="f.options"
-                            :disabled="saving"
-                        />
-                    </label>
+                    </GButton>
                 </div>
-            </section>
-        </div>
+            </n-alert>
 
-        <!-- footer: sticky when embedded, so Save stays on screen while the page
-             scrolls through a long schema (Palworld alone is ~95 fields). -->
-        <div
-            class="shrink-0 p-2 flex items-center justify-end gap-2"
-            :class="embedded ? 'pws-sticky-footer' : 'border-t border-stone-200 dark:border-stone-700'"
-        >
-            <span v-if="dirty" class="mr-auto text-xs font-medium text-amber-600 dark:text-amber-400">
-                <i class="fa-solid fa-pen mr-1"></i>Unsaved changes
-            </span>
-            <button
-                v-if="!embedded"
-                class="rounded px-3 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
-                @click="onClose"
-            >
-                Close
-            </button>
-            <button
-                class="rounded bg-sky-600 px-3 py-1 text-sm text-white hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="!dirty || saving"
+            <n-form label-placement="top" :show-feedback="false">
+                <template v-for="(group, index) in groups" :key="group.id">
+                    <n-divider v-if="index > 0" class="gce-section-divider" />
+                    <section>
+                        <h3 class="gce-section-title">
+                            <GIcon :name="group.icon" class="text-muted" />
+                            <span>{{ group.title }}</span>
+                        </h3>
+                        <p v-if="group.id === 'advanced'" class="gce-section-hint">
+                            Keys not in the schema - edited as raw values, preserved verbatim.
+                        </p>
+
+                        <div class="gce-fields">
+                            <n-form-item v-for="f in group.fields" :key="f.key" class="gce-field">
+                                <template #label>
+                                    <span class="inline-flex flex-wrap items-center gap-2 min-w-0">
+                                        <span>{{ f.label }}</span>
+                                        <code class="gce-key">{{ f.key }}</code>
+                                    </span>
+                                </template>
+                                <div class="w-full min-w-0">
+                                    <FieldInput
+                                        v-model="models[f.key].value"
+                                        :type="f.type"
+                                        :options="f.options"
+                                        :disabled="saving"
+                                    />
+                                    <small v-if="f.help" class="block mt-1 text-muted">{{ f.help }}</small>
+                                </div>
+                            </n-form-item>
+                        </div>
+                    </section>
+                </template>
+            </n-form>
+        </template>
+
+        <!-- Save bar: tab mode only - the file-manager modal draws its own footer.
+             Sticky, so Save stays on screen while the page scrolls through a long
+             schema (Palworld alone is ~95 fields). -->
+        <div v-if="embedded" class="gce-actions">
+            <GStatusBadge v-if="dirty" color="orange" text="Unsaved changes" />
+            <GButton
+                color="green"
+                class="ml-auto"
+                :disabled="!dirty"
+                :loading="saving"
+                data-test="save"
                 @click="onSave"
             >
-                Save
-            </button>
+                <GIcon name="save" />
+                <span class="ml-1">Save</span>
+            </GButton>
         </div>
     </div>
 </template>

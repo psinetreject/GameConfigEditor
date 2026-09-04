@@ -44,7 +44,7 @@ export function inferGroups(doc: ConfigDoc, schema: Schema): Group[] {
     return [...bySection].map(([section, fields]) => ({
         id: section ? `section:${section}` : 'advanced',
         title: section || 'Advanced',
-        icon: section ? 'fa-solid fa-folder' : 'fa-solid fa-gear',
+        icon: section ? 'folder' : 'gear',
         fields,
     }));
 }

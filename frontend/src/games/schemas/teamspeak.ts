@@ -13,7 +13,7 @@ export const ts3Schema: Schema = [
     {
         id: 'ports',
         title: 'Ports & Binding',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('default_voice_port', 'Voice port (UDP)'),
             t('voice_ip', 'Voice bind IP (0.0.0.0 = all)'),
@@ -26,7 +26,7 @@ export const ts3Schema: Schema = [
     {
         id: 'query',
         title: 'ServerQuery Access',
-        icon: 'fa-solid fa-user-shield',
+        icon: 'user-shield',
         fields: [
             t('query_ip_whitelist', 'Whitelist file'),
             t('query_ip_blacklist', 'Blacklist file'),
@@ -37,7 +37,7 @@ export const ts3Schema: Schema = [
     {
         id: 'database',
         title: 'Database',
-        icon: 'fa-solid fa-database',
+        icon: 'database',
         fields: [
             t('dbplugin', 'DB plugin (e.g. ts3db_sqlite3)'),
             t('dbpluginparameter', 'DB plugin parameter file'),
@@ -50,7 +50,7 @@ export const ts3Schema: Schema = [
     {
         id: 'paths',
         title: 'Paths & Logging',
-        icon: 'fa-solid fa-folder-tree',
+        icon: 'folder-tree',
         fields: [
             t('licensepath', 'License file path'),
             t('logpath', 'Log directory'),

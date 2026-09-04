@@ -20,7 +20,7 @@ export const factorioSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('name', 'Server name (browser)'),
             t('description', 'Server description'),
@@ -31,7 +31,7 @@ export const factorioSchema: Schema = [
     {
         id: 'visibility',
         title: 'Visibility & Verification',
-        icon: 'fa-solid fa-eye',
+        icon: 'eye',
         fields: [
             b('visibility.public', 'List on the public matching server'),
             b('visibility.lan', 'Advertise on the LAN'),
@@ -41,7 +41,7 @@ export const factorioSchema: Schema = [
     {
         id: 'credentials',
         title: 'Factorio.com Credentials',
-        icon: 'fa-solid fa-key',
+        icon: 'key',
         fields: [
             t('username', 'Factorio.com username'),
             t('password', 'Factorio.com password'),
@@ -51,7 +51,7 @@ export const factorioSchema: Schema = [
     {
         id: 'players',
         title: 'Players & Administration',
-        icon: 'fa-solid fa-user-shield',
+        icon: 'user-shield',
         fields: [
             b('ignore_player_limit_for_returning_players', 'Let returning players bypass the player limit'),
             n('afk_autokick_interval', 'AFK auto-kick interval (min, 0 = never)'),
@@ -63,7 +63,7 @@ export const factorioSchema: Schema = [
     {
         id: 'autosaves',
         title: 'Autosaves',
-        icon: 'fa-solid fa-floppy-disk',
+        icon: 'save',
         fields: [
             n('autosave_interval', 'Autosave interval (min)'),
             n('autosave_slots', 'Autosave slots'),
@@ -74,7 +74,7 @@ export const factorioSchema: Schema = [
     {
         id: 'network',
         title: 'Network & Upload Limits',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('max_upload_in_kilobytes_per_second', 'Max upload speed (KB/s, 0 = unlimited)'),
             n('max_upload_slots', 'Max upload slots (0 = unlimited)'),

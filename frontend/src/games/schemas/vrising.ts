@@ -11,7 +11,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('Name', 'Server name (browser)'),
             t('Description', 'Description'),
@@ -22,7 +22,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'slots',
         title: 'Players & Performance',
-        icon: 'fa-solid fa-users',
+        icon: 'users',
         fields: [
             n('MaxConnectedUsers', 'Max players'),
             n('MaxConnectedAdmins', 'Reserved admin slots'),
@@ -32,7 +32,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'network',
         title: 'Networking & Listing',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('Port', 'Game port (UDP)'),
             n('QueryPort', 'Steam query port (UDP)'),
@@ -44,7 +44,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'saves',
         title: 'Saves',
-        icon: 'fa-solid fa-floppy-disk',
+        icon: 'save',
         fields: [
             n('AutoSaveCount', 'Auto-saves to keep'),
             n('AutoSaveInterval', 'Auto-save interval (s)'),
@@ -54,7 +54,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'presets',
         title: 'Presets & Debug',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             t('GameSettingsPreset', 'Game settings preset (empty = use JSON)'),
             t('GameDifficultyPreset', 'Difficulty preset'),
@@ -65,7 +65,7 @@ export const vrisingHostSchema: Schema = [
     {
         id: 'rcon',
         title: 'RCON & API',
-        icon: 'fa-solid fa-terminal',
+        icon: 'terminal',
         fields: [
             b('Rcon.Enabled', 'RCON enabled'),
             t('Rcon.Password', 'RCON password'),

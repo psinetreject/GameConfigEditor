@@ -22,7 +22,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'spawn',
         title: 'Player Spawn',
-        icon: 'fa-solid fa-person-arrow-up-from-line',
+        icon: 'person-arrow-up-from-line',
         fields: [
             n('starthealth', 'Spawn health'),
             n('startarmor', 'Spawn armor (HEV battery)'),
@@ -34,7 +34,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'gameplay',
         title: 'Gameplay',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             n('mp_timelimit', 'Time limit (min/map)'),
             n('mp_fraglimit', 'Frag limit (0 = none)'),
@@ -59,7 +59,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'weapons',
         title: 'Weapons & Items',
-        icon: 'fa-solid fa-gun',
+        icon: 'gun',
         fields: [
             b('mp_dropweapons', 'Players drop weapons on death'),
             b('npc_dropweapons', 'NPCs drop weapons on death'),
@@ -83,7 +83,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'movement',
         title: 'Movement & Physics',
-        icon: 'fa-solid fa-person-running',
+        icon: 'person-running',
         fields: [
             n('sv_gravity', 'Gravity'),
             n('sv_maxspeed', 'Max player speed'),
@@ -103,7 +103,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'survival',
         title: 'Survival Mode',
-        icon: 'fa-solid fa-heart-pulse',
+        icon: 'heart-pulse',
         fields: [
             b('mp_survival_supported', 'Survival mode supported'),
             b('mp_survival_starton', 'Start with survival on'),
@@ -114,7 +114,7 @@ export const svencoopMapSettingsSchema: Schema = [
     {
         id: 'observer',
         title: 'Observer & Balancing',
-        icon: 'fa-solid fa-eye',
+        icon: 'eye',
         fields: [
             n('mp_observer_mode', 'Observer mode'),
             b('mp_observer_cyclic', 'Cyclic observer targets'),

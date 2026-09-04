@@ -22,7 +22,7 @@ const shared: Group[] = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('hostname', 'Server name (browser)'),
             t('sv_password', 'Join password (empty = public)'),
@@ -35,7 +35,7 @@ const shared: Group[] = [
     {
         id: 'gameplay',
         title: 'Gameplay',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             n('mp_timelimit', 'Time limit (min/map)'),
             b('mp_friendlyfire', 'Friendly fire'),
@@ -50,13 +50,13 @@ const shared: Group[] = [
     {
         id: 'voice',
         title: 'Voice',
-        icon: 'fa-solid fa-microphone',
+        icon: 'microphone',
         fields: [b('sv_voiceenable', 'Enable voice chat'), b('sv_alltalk', 'All-talk (both teams)')],
     },
     {
         id: 'network',
         title: 'Downloads & Network',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             t('sv_downloadurl', 'Fast-download URL'),
             b('sv_allowdownload', 'Allow client downloads'),
@@ -74,7 +74,7 @@ const extras: Record<string, Group> = {
     cs: {
         id: 'game-cs',
         title: 'Counter-Strike',
-        icon: 'fa-solid fa-crosshairs',
+        icon: 'crosshairs',
         fields: [
             n('mp_startmoney', 'Starting money'),
             n('mp_roundtime', 'Round time (min)'),
@@ -92,20 +92,20 @@ const extras: Record<string, Group> = {
     dod: {
         id: 'game-dod',
         title: 'Day of Defeat',
-        icon: 'fa-solid fa-flag',
+        icon: 'flag',
         // mp_friendlyfire is already in the shared Gameplay group.
         fields: [n('mp_limitteams', 'Team size difference limit'), n('mp_playerid', 'Player ID display mode')],
     },
     tfc: {
         id: 'game-tfc',
         title: 'Team Fortress Classic',
-        icon: 'fa-solid fa-flag-checkered',
+        icon: 'flag-checkered',
         fields: [n('mp_fraglimit', 'Frag limit'), b('mp_tfc_spam_limit', 'Limit explosive spam')],
     },
     svencoop: {
         id: 'game-svencoop',
         title: 'Sven Co-op',
-        icon: 'fa-solid fa-people-group',
+        icon: 'people-group',
         fields: [
             b('mp_allowmonsterinfo', 'Show monster info'),
             n('mp_respawndelay', 'Respawn delay (s)'),

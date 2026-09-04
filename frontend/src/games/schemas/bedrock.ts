@@ -14,7 +14,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'server',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('server-name', 'Server name (server list)'),
             n('server-port', 'Server port (IPv4)'),
@@ -30,7 +30,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'world',
         title: 'World & Gameplay',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             t('level-name', 'World folder name'),
             t('level-seed', 'World seed'),
@@ -45,7 +45,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'players',
         title: 'Players & Permissions',
-        icon: 'fa-solid fa-user-shield',
+        icon: 'user-shield',
         fields: [
             sel('default-player-permission-level', 'Default permission level', [
                 'visitor',
@@ -61,7 +61,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'performance',
         title: 'Performance',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('view-distance', 'View distance (chunks)'),
             n('tick-distance', 'Tick simulation distance (4-12 chunks)'),
@@ -76,7 +76,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'movement',
         title: 'Movement Authority (Anti-cheat)',
-        icon: 'fa-solid fa-person-running',
+        icon: 'person-running',
         fields: [
             sel('server-authoritative-movement', 'Movement authority', [
                 'client-auth',
@@ -92,7 +92,7 @@ export const bedrockSchema: Schema = [
     {
         id: 'scripting',
         title: 'Script Debugging',
-        icon: 'fa-solid fa-bug',
+        icon: 'bug',
         fields: [
             b('allow-outbound-script-debugging', 'Allow outbound script debugging'),
             b('allow-inbound-script-debugging', 'Allow inbound script debugging'),

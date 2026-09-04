@@ -20,7 +20,7 @@ export const arkGameUserSettingsSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             sess.t('SessionName', 'Server name (browser)'),
             gsess.n('MaxPlayers', 'Max players'),
@@ -36,7 +36,7 @@ export const arkGameUserSettingsSchema: Schema = [
     {
         id: 'rates',
         title: 'Rates & Difficulty',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             ss.n('XPMultiplier', 'XP rate'),
             ss.n('TamingSpeedMultiplier', 'Taming speed'),
@@ -53,7 +53,7 @@ export const arkGameUserSettingsSchema: Schema = [
     {
         id: 'combat',
         title: 'Combat & Structures',
-        icon: 'fa-solid fa-gavel',
+        icon: 'gavel',
         fields: [
             ss.n('PlayerDamageMultiplier', 'Player damage dealt'),
             ss.n('PlayerResistanceMultiplier', 'Player damage taken (lower = tankier)'),
@@ -66,7 +66,7 @@ export const arkGameUserSettingsSchema: Schema = [
     {
         id: 'toggles',
         title: 'Rules & Toggles',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             ss.b('allowThirdPersonPlayer', 'Allow 3rd-person camera'),
             ss.b('ShowMapPlayerLocation', 'Show player location on map'),
@@ -90,7 +90,7 @@ export const arkGameUserSettingsSchema: Schema = [
     {
         id: 'motd',
         title: 'Message of the Day',
-        icon: 'fa-solid fa-comment',
+        icon: 'comment',
         fields: [motd.t('Message', 'MOTD message'), motd.n('Duration', 'MOTD duration (s)')],
     },
 ];
@@ -99,7 +99,7 @@ export const arkGameIniSchema: Schema = [
     {
         id: 'breeding',
         title: 'Breeding & Imprinting',
-        icon: 'fa-solid fa-egg',
+        icon: 'egg',
         fields: [
             gm.n('BabyMatureSpeedMultiplier', 'Baby maturation speed'),
             gm.n('MatingIntervalMultiplier', 'Mating cooldown (lower = faster)'),
@@ -115,7 +115,7 @@ export const arkGameIniSchema: Schema = [
     {
         id: 'gameplay',
         title: 'Gameplay & Progression',
-        icon: 'fa-solid fa-arrow-trend-up',
+        icon: 'arrow-trend-up',
         fields: [
             gm.n('GlobalSpoilingTimeMultiplier', 'Spoil timers'),
             gm.n('PassiveTameIntervalMultiplier', 'Passive-tame feed interval'),

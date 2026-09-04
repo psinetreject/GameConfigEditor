@@ -13,6 +13,8 @@
  * format-specific lives behind these interfaces.
  */
 
+import type { IconName } from '../icons';
+
 export type FType = 'text' | 'number' | 'bool' | 'select' | 'raw';
 
 /**
@@ -34,7 +36,8 @@ export interface FieldDef {
 export interface Group {
     id: string;
     title: string;
-    icon: string;
+    /** GIcon registry name (see src/icons.ts). */
+    icon: IconName;
     fields: FieldDef[];
 }
 

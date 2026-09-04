@@ -13,7 +13,7 @@ export const pzSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('PublicName', 'Server name (browser)'),
             t('PublicDescription', 'Browser description'),
@@ -26,7 +26,7 @@ export const pzSchema: Schema = [
     {
         id: 'access',
         title: 'Access & Whitelist',
-        icon: 'fa-solid fa-user-shield',
+        icon: 'user-shield',
         fields: [
             b('Open', 'Open join (no whitelist account needed)'),
             b('AutoCreateUserInWhiteList', 'Auto-add players to whitelist'),
@@ -37,7 +37,7 @@ export const pzSchema: Schema = [
     {
         id: 'network',
         title: 'Networking / RCON',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('DefaultPort', 'Game port (UDP)'),
             n('UDPPort', 'Secondary UDP port'),
@@ -48,7 +48,7 @@ export const pzSchema: Schema = [
     {
         id: 'pvp',
         title: 'PvP & Safety',
-        icon: 'fa-solid fa-hand-fist',
+        icon: 'hand-fist',
         fields: [
             b('PVP', 'PvP damage enabled'),
             b('SafetySystem', 'Safety system (must disable safety to hit)'),
@@ -60,7 +60,7 @@ export const pzSchema: Schema = [
     {
         id: 'safehouse',
         title: 'Safehouses',
-        icon: 'fa-solid fa-house-lock',
+        icon: 'house-lock',
         fields: [
             b('PlayerSafehouse', 'Allow player safehouses'),
             b('SafehouseAllowTrepass', 'Non-members may enter'),
@@ -71,7 +71,7 @@ export const pzSchema: Schema = [
     {
         id: 'world',
         title: 'World & Spawn',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             t('SpawnPoint', 'Forced spawn x,y,z (0,0,0 = regions)'),
             t('SpawnItems', 'Starting items (comma-separated ids)'),
@@ -82,7 +82,7 @@ export const pzSchema: Schema = [
     {
         id: 'mods',
         title: 'Mods & Backups',
-        icon: 'fa-solid fa-puzzle-piece',
+        icon: 'puzzle-piece',
         fields: [
             t('Mods', 'Mod IDs (semicolon-separated)'),
             t('WorkshopItems', 'Workshop item IDs (semicolon-separated)'),

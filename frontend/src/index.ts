@@ -1,9 +1,10 @@
 import type { PluginDefinition } from '@gameap/plugin-sdk';
-import './styles/main.css';
+import './styles.css';
 import ConfigEditor from './components/ConfigEditor.vue';
 import GameConfigTab from './components/GameConfigTab.vue';
 import LaunchSettingsTab from './components/LaunchSettingsTab.vue';
 import { games } from './games/registry';
+import { registerPluginIcons } from './icons';
 
 // Single named export - the panel's bundle loader (and the Vite IIFE wrapper)
 // expect exactly one exported PluginDefinition.
@@ -16,6 +17,15 @@ export const gameConfigPlugin: PluginDefinition = {
     description: 'Structured editors for game server config files (Palworld, Minecraft, and more)',
     author: 'psinetreject',
 
+    // The loader awaits onInit before the first render, so the icons the panel
+    // lacks are in its registry by the time a tab header asks for them.
+    onInit() {
+        registerPluginIcons();
+        // The components are built from the panel's own naive-ui module. Without
+        // it (GameAP before 4.4.0) they render nothing, so say why.
+        if (!window.NaiveUI) console.error('Game Config Editor needs GameAP 4.4.0 or newer.');
+    },
+
     // One generic tab on every server page. GameAP can't gate a tab per game,
     // so the tab itself switches on server.game_id (and shows a "not supported
     // yet" note for games we don't cover) - see GameConfigTab.vue.
@@ -24,7 +34,7 @@ export const gameConfigPlugin: PluginDefinition = {
             {
                 component: GameConfigTab,
                 label: 'Game Config',
-                icon: 'fa-solid fa-sliders',
+                icon: 'sliders',
                 name: 'game-config',
             },
             {
@@ -32,7 +42,7 @@ export const gameConfigPlugin: PluginDefinition = {
                 // only editor for games (Valheim) whose config is launch args.
                 component: LaunchSettingsTab,
                 label: 'Launch Settings',
-                icon: 'fa-solid fa-terminal',
+                icon: 'terminal',
                 name: 'launch-settings',
             },
         ],
@@ -48,6 +58,6 @@ export const gameConfigPlugin: PluginDefinition = {
         component: ConfigEditor,
         match: { fileName: g.fileName, gameCode: g.gameId },
         contentType: 'text' as const,
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
     })),
 };
