@@ -4,13 +4,21 @@
  * config editor (types from a game schema) and the launch-settings tab (types
  * inferred from what GameAP declares), so the two surfaces stay consistent.
  *
- * Bindings are explicit `:value` + emit rather than v-model on the inner element
- * because props are readonly; the behaviour matches what v-model would do,
- * including `.number`'s "keep the text if it isn't a number" coercion.
+ * The controls are the panel's own - GInput and GSwitch are its globally
+ * registered components, n-input-number and n-select come from its naive-ui -
+ * so a field here looks like one in the panel's server-settings form
+ * (js/components/input/VarValueField.vue is the model).
+ *
+ * n-input-number speaks `number | null`, while a number field's ConfigValue is
+ * "a number, or the original string when the file holds something unparseable":
+ * a cleared input is emitted as '' (as the plain <input type=number> did), and an
+ * unparseable string is shown as the placeholder rather than hidden.
  */
+import { computed } from 'vue';
+import { NInputNumber, NSelect } from 'naive-ui';
 import type { ConfigValue, FType } from '../formats/types';
 
-defineProps<{
+const props = defineProps<{
     modelValue: ConfigValue;
     type: FType;
     options?: string[];
@@ -19,51 +27,66 @@ defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [ConfigValue] }>();
 
-const INPUT_CLASS =
-    'rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1 text-sm outline-none focus:border-sky-500 disabled:opacity-60';
+const textValue = computed(() => String(props.modelValue ?? ''));
 
-/** Same coercion as Vue's own `v-model.number`: keep the text if it isn't numeric. */
-function toNumber(raw: string): ConfigValue {
-    const n = parseFloat(raw);
-    return isNaN(n) ? raw : n;
+const numberValue = computed(() =>
+    typeof props.modelValue === 'number' && Number.isFinite(props.modelValue) ? props.modelValue : null,
+);
+const numberPlaceholder = computed(() => (typeof props.modelValue === 'string' ? props.modelValue : ''));
+
+const selectValue = computed(() => (textValue.value === '' ? null : textValue.value));
+// A value outside the curated list still has to be shown (and kept on save):
+// otherwise the select renders blank and the next save would wipe it.
+const selectOptions = computed(() => {
+    const list = (props.options ?? []).map((option) => ({ label: option, value: option }));
+    const current = selectValue.value;
+    if (current !== null && !list.some((option) => option.value === current)) {
+        list.unshift({ label: current, value: current });
+    }
+    return list;
+});
+
+function onBool(value: boolean) {
+    emit('update:modelValue', value);
 }
-
-const target = (e: Event) => e.target as HTMLInputElement;
+function onSelect(value: unknown) {
+    emit('update:modelValue', typeof value === 'string' ? value : '');
+}
+function onNumber(value: number | null) {
+    emit('update:modelValue', value ?? '');
+}
+function onText(value: string) {
+    emit('update:modelValue', value);
+}
 </script>
 
 <template>
-    <input
-        v-if="type === 'bool'"
-        type="checkbox"
-        class="w-4 h-4"
-        :checked="modelValue === true"
-        :disabled="disabled"
-        @change="emit('update:modelValue', target($event).checked)"
-    />
-    <select
+    <GSwitch v-if="type === 'bool'" :value="modelValue === true" :disabled="disabled" @update:value="onBool" />
+    <n-select
         v-else-if="type === 'select'"
-        :value="modelValue"
-        :class="INPUT_CLASS"
+        :value="selectValue"
+        :options="selectOptions"
+        filterable
+        placeholder=""
         :disabled="disabled"
-        @change="emit('update:modelValue', target($event).value)"
-    >
-        <option v-for="o in options" :key="o" :value="o">{{ o }}</option>
-    </select>
-    <input
-        v-else-if="type === 'number'"
-        type="number"
-        step="any"
-        :value="modelValue"
-        :class="INPUT_CLASS"
-        :disabled="disabled"
-        @input="emit('update:modelValue', toNumber(target($event).value))"
+        @update:value="onSelect"
     />
-    <input
-        v-else
-        type="text"
-        :value="modelValue"
-        :class="INPUT_CLASS"
+    <n-input-number
+        v-else-if="type === 'number'"
+        :value="numberValue"
+        :show-button="false"
+        :placeholder="numberPlaceholder"
         :disabled="disabled"
-        @input="emit('update:modelValue', target($event).value)"
+        class="w-full"
+        @update:value="onNumber"
+    />
+    <GInput
+        v-else
+        :value="textValue"
+        type="text"
+        placeholder=""
+        :disabled="disabled"
+        :class="type === 'raw' ? 'gce-mono' : ''"
+        @update:value="onText"
     />
 </template>

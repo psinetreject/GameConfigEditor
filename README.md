@@ -222,9 +222,12 @@ src/
     ConfigEditor.vue      generic, format+schema-driven editor
     GameConfigTab.vue     one tab that switches on server.game_id
     LaunchSettingsTab.vue start-command vars via the panel settings API
-    Banner.vue            the notice/warning/error callout
-    FieldInput.vue        one control per field type
+    FieldInput.vue        one control per field type, built from the panel's inputs
     *.test.ts             mounted-component tests (jsdom + @vue/test-utils)
+  lib/notify.ts       the panel's toasts and confirm dialogs, with fallbacks
+  icons.ts            GIcon names: the panel's own plus the ones the plugin registers
+  styles.css          plain CSS, `gce-` prefixed, on the panel's --gameap-* tokens
+  test/               stand-ins for the panel's components and naive-ui in tests
   index.ts            plugin definition: 2 tabs + N game-gated file editors
 ```
 
@@ -330,10 +333,25 @@ config, so the tests concentrate there: every format must round-trip an untouche
 file byte-for-byte, and editing one key must rewrite exactly that key's line.
 `npm run test:watch` reruns on change.
 
+The component tests mount the tabs and the editor in jsdom, where the panel's
+globally registered components (`GButton`, `GIcon`, `GInput`, ...) and its
+naive-ui do not exist, so `src/test/` supplies stand-ins: `panel.ts` registers
+doubles for the components and for the `$message`/`$dialog` globals (a test
+steers the next confirm dialog through `panel.answer`), and `vitest.config.ts`
+aliases `naive-ui` to `naive-ui.ts`, plain form elements that emit the same
+`update:value` events. `src/icons.test.ts` checks that every icon a schema names
+is either a panel icon or one the plugin registers. `npm run build` itself fails
+when the bundle still imports an externalized package, is not wrapped in an
+IIFE, or a stylesheet selector leaves the `gce-` namespace
+(`assertBundleShapePlugin` in `vite.config.ts`).
+
 `.forgejo/workflows/frontend.yml` runs those two commands plus a bundle build on
 every push, and the full `./build.sh` on anything that isn't a pull request.
 
 ## Install
+
+Requires GameAP 4.4.0 or newer: the UI is built from the panel's own components
+and its naive-ui, which the panel exposes to plugins from that release on.
 
 In the panel: **Administration -> Plugins -> Upload**, select
 `GameAP-GameConfigEditor.wasm`. Open a server's **Game Config** tab, or browse to a
@@ -354,16 +372,30 @@ written down so a later change doesn't quietly undo one.
   An older image capped at Go 1.25 fails at the compile step.
 - **gRPC stubs trimmed.** `pkg/proto` ships host-side `*_grpc.pb.go` whose TLS
   code TinyGo can't compile, so `build.sh` deletes them. The guest never uses them.
+- **VCS stamping is off for the WASM build** (`-buildvcs=false` in `GOFLAGS`).
+  Docker Desktop presents the bind-mounted repository root to the container as
+  owned by root while the files keep the host uid, so git inside the container
+  refuses the repository as "dubious ownership" and `tinygo build` stops with
+  `error obtaining VCS status`. Nothing needs the stamp: the plugin version comes
+  from `VERSION`, not from git. A Linux CI runner never hit this because there
+  the mount keeps its owner.
 - **SDK vendored via `replace`.** `github.com/gameap/gameap` is v4.x with no
   `/v4` module path, so it can't be `go get`-ed - it's cloned to `./.sdk/gameap`.
 - **CSS must be `plugin.css`.** Vite names a library stylesheet after the
   package, but `main.go` embeds `dist/plugin.css`. Fixed by
   `build.lib.cssFileName`, which also keeps the name stable if the package is
   ever renamed.
-- **Tailwind runs as a Vite plugin** (`@tailwindcss/vite`), not via a
-  `postcss.config.js`. Tailwind 4 handles its own prefixing, so there are no
-  standalone `postcss`/`autoprefixer` devDeps to keep in sync. Don't reintroduce
-  a PostCSS config - it would be a second, competing CSS pipeline.
+- **No CSS framework.** The styles are one plain file, `src/styles.css`, that
+  Vite emits as `plugin.css`. GameAP injects plugin CSS panel-wide, so every
+  class is prefixed `gce-` and colours come from the panel's `--gameap-*` tokens
+  (the panel flips them on `html.dark`, so there are no dark variants to keep in
+  step). Templates use the panel's own components (`GButton`, `GIcon`, `n-alert`,
+  `n-form-item`, ...) and only the utility classes the panel's compiled CSS
+  contains - its Tailwind build does not scan plugin sources, so a utility the
+  panel doesn't use itself compiles to nothing here; anything responsive lives in
+  `styles.css`. The plugin used to ship a Tailwind build of its own for this,
+  which duplicated the panel's utilities and needed a `revert-layer` hack to beat
+  the panel's button reset. Don't reintroduce one.
 - **`go mod tidy` writes to a throwaway modfile.** Left alone it rewrites the
   committed `go.mod` on every build (bumping the `go` directive and the indirect
   versions), so `build.sh` copies it to `.build.mod`, points
@@ -397,17 +429,32 @@ written down so a later change doesn't quietly undo one.
   vite 8. That is 191 of the lockfile's 518 entries and ~150 MB, none of it
   reachable from the bundle. It is kept anyway: it is the only way to run the
   plugin against a mock API locally, and keeping it in the lockfile means
-  `npm run debug` is pinned and works offline. Nothing in `build`, `test`, or
+  `npm run debug` is pinned and works offline. Mind that the published 0.3.10
+  bundles a panel build from before 4.4.0 - no `window.NaiveUI`, no theme
+  tokens - so it loads the plugin but renders its tabs empty. To see the UI, run
+  the harness from a panel checkout instead: `PLUGINS_PATH=<absolute path to
+  frontend/dist> npm run dev` in `gameap-api/web/frontend/packages/gameap-debug`
+  serves the real panel frontend with mocked APIs at http://localhost:5174.
+  Nothing in `build`, `test`, or
   `typecheck` touches it, so if an install ever needs to be lean,
   `npm ci --omit=dev` or dropping this one entry is the lever - `npm run debug`
   then still works via `npx`, just unpinned and needing network.
-- **`vue` and `axios` are peer + dev dependencies, never runtime ones.** Both are
-  externalized to `window.Vue` / `window.axios` (see `globalExternalsPlugin` in
-  `vite.config.ts`) because GameAP provides them, so they must not be bundled -
-  but `vue-tsc` and Vitest still need to resolve them from disk, hence the
-  devDependency. `axios` is declared explicitly even though `@gameap/debug`
-  happens to hoist a copy: relying on a transitive dep's hoisting to satisfy a
-  direct import breaks the moment that dep moves or is dropped.
+- **`vue`, `axios` and `naive-ui` are peer + dev dependencies, never runtime
+  ones.** All three are externalized to `window.Vue` / `window.axios` /
+  `window.NaiveUI` (see `globalExternalsPlugin` in `vite.config.ts`) because
+  GameAP provides them - naive-ui from 4.4.0 on, which is what sets the minimum
+  panel version - so they must not be bundled; `vue-tsc` and Vitest still need
+  to resolve them from disk, hence the devDependency. `@gameap/ui` is
+  externalized the same way although nothing here imports it: the plugin SDK
+  re-exports it from 0.3.3 on, and a future bump must not pull the panel's UI
+  package into the bundle. The rewrite reads named imports through optional
+  chaining (`window.NaiveUI?.NAlert`) and drops bare side-effect imports,
+  because the panel serves every plugin concatenated in one `/plugins.js`
+  module: a global missing on an older panel has to leave undefined components
+  rather than throw and take the other plugins down with this one. `axios` is
+  declared explicitly even though `@gameap/debug` happens to hoist a copy:
+  relying on a transitive dep's hoisting to satisfy a direct import breaks the
+  moment that dep moves or is dropped.
 - **Rollup types come from `vite`, not `rollup`.** We build with vite 8, which
   bundles rolldown, so nothing here declares `rollup`. A copy is still on disk,
   but only as a transitive of `@gameap/debug`'s vite 7 - a dev harness the build

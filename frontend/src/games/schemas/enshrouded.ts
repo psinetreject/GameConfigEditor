@@ -37,7 +37,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('name', 'Server name (server browser)'),
             t('saveDirectory', 'World save directory'),
@@ -47,7 +47,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'network',
         title: 'Networking & Slots',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             t('ip', 'Bind address (0.0.0.0 = all interfaces)'),
             n('queryPort', 'Query port (UDP)'),
@@ -57,7 +57,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'chat',
         title: 'Voice & Text Chat',
-        icon: 'fa-solid fa-comments',
+        icon: 'comments',
         fields: [
             b('enableVoiceChat', 'Voice chat enabled'),
             sel('voiceChatMode', 'Voice chat mode', ['Proximity', 'Global']),
@@ -67,7 +67,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'preset',
         title: 'Difficulty Preset',
-        icon: 'fa-solid fa-sliders',
+        icon: 'sliders',
         fields: [
             sel('gameSettingsPreset', 'Difficulty preset (only "Custom" reads the settings below)', [
                 'Default',
@@ -81,7 +81,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'player',
         title: 'Player',
-        icon: 'fa-solid fa-user',
+        icon: 'user',
         fields: [
             gs.n('playerHealthFactor', 'Max health factor (0.25-4)'),
             gs.n('playerManaFactor', 'Max mana factor (0.25-4)'),
@@ -93,7 +93,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'survival',
         title: 'Survival & Death',
-        icon: 'fa-solid fa-utensils',
+        icon: 'utensils',
         fields: [
             gs.b('enableDurability', 'Weapon durability (off = weapons never break)'),
             gs.b('enableStarvingDebuff', 'Hunger and starvation'),
@@ -114,7 +114,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'world',
         title: 'World, Weather & Time',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             gs.sel('weatherFrequency', 'Weather phenomena frequency', [
                 'Disabled',
@@ -140,7 +140,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'progression',
         title: 'Gathering & Progression',
-        icon: 'fa-solid fa-arrow-trend-up',
+        icon: 'arrow-trend-up',
         fields: [
             gs.n('miningDamageFactor', 'Mining effectiveness factor (0.5-2)'),
             gs.n('plantGrowthSpeedFactor', 'Plant growth speed factor (0.25-2)'),
@@ -156,7 +156,7 @@ export const enshroudedSchema: Schema = [
     {
         id: 'enemies',
         title: 'Enemies & Bosses',
-        icon: 'fa-solid fa-dragon',
+        icon: 'dragon',
         fields: [
             gs.sel('randomSpawnerAmount', 'Enemy amount in the world', [
                 'Few',

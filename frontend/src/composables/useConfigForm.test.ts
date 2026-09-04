@@ -43,7 +43,7 @@ describe('inferGroups', () => {
     it('lists only the keys the schema does not already cover', () => {
         const doc = keyvalueFormat.parse(FLAT)!;
         const schema: Schema = [
-            { id: 's', title: 'S', icon: 'i', fields: [{ key: 'known', label: 'Known', type: 'number' }] },
+            { id: 's', title: 'S', icon: 'gear', fields: [{ key: 'known', label: 'Known', type: 'number' }] },
         ];
         const groups = inferGroups(doc, schema);
         expect(groups).toHaveLength(1);
@@ -76,7 +76,7 @@ describe('inferGroups', () => {
             {
                 id: 's',
                 title: 'S',
-                icon: 'i',
+                icon: 'gear',
                 fields: [{ key: addr('S', 'allowthing'), label: 'Allow', type: 'bool' }],
             },
         ];
@@ -99,7 +99,7 @@ describe('useConfigForm', () => {
         {
             id: 'main',
             title: 'Main',
-            icon: 'i',
+            icon: 'gear',
             fields: [
                 { key: 'name', label: 'Name', type: 'text' },
                 { key: 'port', label: 'Port', type: 'number' },
@@ -158,7 +158,7 @@ describe('useConfigForm', () => {
 
     it('hides a schema group that has no fields', () => {
         const doc = keyvalueFormat.parse(TEXT)!;
-        const withEmpty: Schema = [...schema, { id: 'empty', title: 'Empty', icon: 'i', fields: [] }];
+        const withEmpty: Schema = [...schema, { id: 'empty', title: 'Empty', icon: 'gear', fields: [] }];
         const { groups } = useConfigForm(doc, withEmpty, keyvalueFormat.codec);
         expect(groups.value.map((g) => g.id)).not.toContain('empty');
     });
@@ -167,7 +167,7 @@ describe('useConfigForm', () => {
         const doc = keyvalueFormat.parse(TEXT)!;
         const dup: Schema = [
             schema[0],
-            { id: 'dup', title: 'Dup', icon: 'i', fields: [{ key: 'name', label: 'Again', type: 'text' }] },
+            { id: 'dup', title: 'Dup', icon: 'gear', fields: [{ key: 'name', label: 'Again', type: 'text' }] },
         ];
         const { models } = useConfigForm(doc, dup, keyvalueFormat.codec);
         models['name'].value = 'changed';
@@ -212,7 +212,7 @@ describe('useConfigForm', () => {
             {
                 id: 'json',
                 title: 'JSON',
-                icon: 'i',
+                icon: 'gear',
                 fields: [{ key: 'List', label: 'List', type: 'raw' }],
             },
         ];

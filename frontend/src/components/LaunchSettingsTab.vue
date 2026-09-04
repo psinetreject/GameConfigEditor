@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
+import { NAlert, NForm, NFormItem } from 'naive-ui';
 import axios from 'axios';
 import type { ServerTabProps } from '@gameap/plugin-sdk';
 import { useServerAbilities } from '@gameap/plugin-sdk';
-import Banner from './Banner.vue';
 import FieldInput from './FieldInput.vue';
 import type { ConfigValue, FType } from '../formats/types';
 import { errMsg, useAsyncPanel } from '../composables/useAsyncPanel';
+import { confirmDiscard, showSuccess } from '../lib/notify';
 
 /**
  * "Launch Settings" server tab - edits a server's start-command variables
@@ -139,7 +140,9 @@ async function performSave(payload: Array<{ name: string; value: unknown }>, sav
     reset();
     try {
         await axios.put(`${base}/settings`, payload);
-        notice.value = 'Saved. Restart the server for launch changes to take effect.';
+        // A toast where the panel offers one; the inline alert is the fallback.
+        const message = 'Saved. Restart the server for launch changes to take effect.';
+        if (!showSuccess(message)) notice.value = message;
         if (revision.value === savedRevision) dirty.value = false;
     } catch (e: any) {
         failedAction = 'save';
@@ -160,6 +163,12 @@ function retry() {
     else void load();
 }
 
+async function reload() {
+    if (saving.value) return;
+    if (dirty.value && !(await confirmDiscard('Reloading will discard your unsaved changes. Continue?'))) return;
+    void load();
+}
+
 function update(name: string, v: ConfigValue) {
     values[name] = v;
     const def = defs.value.find((candidate) => candidate.name === name);
@@ -172,70 +181,85 @@ load();
 </script>
 
 <template>
-    <!-- `pws-tab` scopes our unlayered button/footer rules; no `h-full` because
-         the panel's tab pane has no height of its own. -->
-    <div class="pws-tab flex flex-col min-h-[420px] text-sm text-stone-800 dark:text-stone-200">
-        <Banner v-if="notice" class="m-2" tone="success" icon="fa-solid fa-check">{{ notice }}</Banner>
+    <!-- No `h-full`: the panel's tab pane has no height of its own, so flow at
+         natural height and let the page scroll. -->
+    <div class="gce-root text-body">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+            <GButton
+                color="white"
+                size="small"
+                :loading="loading"
+                :disabled="saving"
+                data-test="reload"
+                @click="reload"
+            >
+                <GIcon name="refresh" />
+                <span class="ml-1">Reload</span>
+            </GButton>
+        </div>
 
-        <Banner v-if="error" class="m-2" tone="danger" icon="fa-solid fa-circle-exclamation">
+        <!-- only shown where the panel offers no toast -->
+        <n-alert v-if="notice" type="success" :show-icon="true" class="mb-3">{{ notice }}</n-alert>
+
+        <n-alert v-if="error" type="error" :show-icon="true" class="mb-3">
             {{ error }}
-            <template #action>
-                <button
-                    class="shrink-0 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                    @click="retry"
-                >
+            <div class="mt-2">
+                <GButton color="black" size="small" :loading="loading || saving" data-test="retry" @click="retry">
                     Retry
-                </button>
-            </template>
-        </Banner>
+                </GButton>
+            </div>
+        </n-alert>
 
-        <div v-if="loading" class="p-6 text-center text-stone-500 dark:text-stone-400">
-            <i class="fa-solid fa-spinner fa-spin mr-1"></i>Loading launch settings...
+        <div v-if="loading" class="py-10"><Loading /></div>
+
+        <div v-else-if="unsupported" class="py-6">
+            <GEmpty description="This GameAP version doesn't expose the server settings API, or this server has none." />
         </div>
 
-        <div v-else-if="unsupported" class="p-4 text-stone-500 dark:text-stone-400">
-            This GameAP version doesn't expose the server settings API, or this server has none.
-        </div>
-
-        <div v-else-if="defs.length === 0" class="p-4 text-stone-500 dark:text-stone-400">
-            This game exposes no editable launch settings in GameAP.
+        <div v-else-if="defs.length === 0" class="py-6">
+            <GEmpty description="This game exposes no editable launch settings in GameAP." />
         </div>
 
         <template v-else>
-            <Banner v-if="!canEdit" class="m-2" tone="caution" icon="fa-solid fa-lock">
+            <n-alert v-if="!canEdit" type="warning" :show-icon="true" class="mb-3">
                 You don't have the <code>game-server-settings</code> permission - these are read-only.
-            </Banner>
+            </n-alert>
 
-            <div class="p-3">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                    <label v-for="d in defs" :key="d.name" class="flex flex-col gap-1">
-                        <span class="text-xs text-stone-500 dark:text-stone-400">
-                            {{ d.label || d.name }} <code class="opacity-60">{{ d.name }}</code>
-                            <span
-                                v-if="d.admin_var"
-                                class="ml-1 rounded bg-stone-200 dark:bg-stone-700 px-1 text-[10px] uppercase"
-                                >admin</span
-                            >
-                        </span>
-                        <FieldInput
-                            :model-value="values[d.name]"
-                            :type="kindOf(d)"
-                            :disabled="!canEdit"
-                            @update:model-value="update(d.name, $event)"
-                        />
-                    </label>
+            <n-form label-placement="top" :show-feedback="false">
+                <div class="gce-fields">
+                    <n-form-item v-for="d in defs" :key="d.name" class="gce-field">
+                        <template #label>
+                            <span class="inline-flex flex-wrap items-center gap-2 min-w-0">
+                                <span>{{ d.label || d.name }}</span>
+                                <code class="gce-key">{{ d.name }}</code>
+                                <GStatusBadge v-if="d.admin_var" color="light" text="admin" />
+                            </span>
+                        </template>
+                        <div class="w-full min-w-0">
+                            <FieldInput
+                                :model-value="values[d.name]"
+                                :type="kindOf(d)"
+                                :disabled="!canEdit"
+                                @update:model-value="update(d.name, $event)"
+                            />
+                        </div>
+                    </n-form-item>
                 </div>
-            </div>
+            </n-form>
 
-            <div class="pws-sticky-footer shrink-0 p-2 flex items-center justify-end gap-2">
-                <span v-if="saving" class="text-xs text-stone-400">Saving...</span>
-                <button
-                    class="rounded bg-sky-600 px-3 py-1 text-sm text-white hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="!dirty || !canEdit || saving"
+            <div class="gce-actions">
+                <GStatusBadge v-if="dirty" color="orange" text="Unsaved changes" />
+                <GButton
+                    color="green"
+                    class="ml-auto"
+                    :disabled="!dirty || !canEdit"
+                    :loading="saving"
+                    data-test="save"
                     @click="save"
                 >
-                    Save
-                </button>
+                    <GIcon name="save" />
+                    <span class="ml-1">Save</span>
+                </GButton>
             </div>
         </template>
     </div>

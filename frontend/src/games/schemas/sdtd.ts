@@ -14,7 +14,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('ServerName', 'Server name (browser)'),
             t('ServerDescription', 'Description'),
@@ -30,7 +30,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'world',
         title: 'World',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             t('GameWorld', 'World (Navezgane, RWG, ...)'),
             t('WorldGenSeed', 'Random world seed'),
@@ -43,7 +43,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'zombies',
         title: 'Zombies & Blood Moons',
-        icon: 'fa-solid fa-skull',
+        icon: 'skull',
         fields: [
             sel('ZombieMove', 'Zombie speed (day)', ['0', '1', '2', '3', '4']),
             sel('ZombieMoveNight', 'Zombie speed (night)', ['0', '1', '2', '3', '4']),
@@ -62,7 +62,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'rates',
         title: 'Rates & Loot',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('XPMultiplier', 'XP multiplier (%)'),
             n('LootAbundance', 'Loot abundance (%)'),
@@ -78,7 +78,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'pvp',
         title: 'PvP & Death',
-        icon: 'fa-solid fa-hand-fist',
+        icon: 'hand-fist',
         fields: [
             sel('PlayerKillingMode', 'Player killing', ['0', '1', '2', '3']),
             sel('DropOnDeath', 'Drop on death', ['0', '1', '2', '3']),
@@ -91,7 +91,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'claims',
         title: 'Land Claims',
-        icon: 'fa-solid fa-map-pin',
+        icon: 'map-pin',
         fields: [
             n('LandClaimCount', 'Claims per player'),
             n('LandClaimSize', 'Claim size (blocks)'),
@@ -102,7 +102,7 @@ export const sdtdSchema: Schema = [
     {
         id: 'admin',
         title: 'Telnet, Web & Anti-cheat',
-        icon: 'fa-solid fa-terminal',
+        icon: 'terminal',
         fields: [
             b('TelnetEnabled', 'Enable telnet'),
             n('TelnetPort', 'Telnet port'),

@@ -6,7 +6,7 @@ export const palworldSchema: Schema = [
     {
         id: 'server',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('ServerName', 'Server name'),
             t('ServerDescription', 'Description'),
@@ -21,7 +21,7 @@ export const palworldSchema: Schema = [
     {
         id: 'multiplayer',
         title: 'Players & Multiplayer',
-        icon: 'fa-solid fa-users',
+        icon: 'users',
         fields: [
             n('ServerPlayerMaxNum', 'Max players'),
             n('CoopPlayerMaxNum', 'Co-op players (guild)'),
@@ -44,7 +44,7 @@ export const palworldSchema: Schema = [
     {
         id: 'world',
         title: 'World & Difficulty',
-        icon: 'fa-solid fa-earth-americas',
+        icon: 'earth-americas',
         fields: [
             sel('Difficulty', 'Difficulty', ['None', 'Casual', 'Normal', 'Hard']),
             sel('RandomizerType', 'Randomizer type', ['None', 'Region', 'All']),
@@ -60,7 +60,7 @@ export const palworldSchema: Schema = [
     {
         id: 'rates_progress',
         title: 'Rates - Progression & Gathering',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('ExpRate', 'EXP rate'),
             n('PalCaptureRate', 'Pal capture rate'),
@@ -76,7 +76,7 @@ export const palworldSchema: Schema = [
     {
         id: 'rates_combat',
         title: 'Rates - Combat & Structures',
-        icon: 'fa-solid fa-gavel',
+        icon: 'gavel',
         fields: [
             n('PalDamageRateAttack', 'Pal damage - attack'),
             n('PalDamageRateDefense', 'Pal damage - defense'),
@@ -90,7 +90,7 @@ export const palworldSchema: Schema = [
     {
         id: 'rates_survival',
         title: 'Rates - Survival',
-        icon: 'fa-solid fa-heart-pulse',
+        icon: 'heart-pulse',
         fields: [
             n('PlayerStomachDecreaceRate', 'Player hunger drain'),
             n('PlayerStaminaDecreaceRate', 'Player stamina drain'),
@@ -105,13 +105,13 @@ export const palworldSchema: Schema = [
     {
         id: 'pals',
         title: 'Pals',
-        icon: 'fa-solid fa-paw',
+        icon: 'paw',
         fields: [n('PalEggDefaultHatchingTime', 'Egg hatch time (h)'), b('EnablePredatorBossPal', 'Predator boss Pals')],
     },
     {
         id: 'items',
         title: 'Items & Drops',
-        icon: 'fa-solid fa-box-open',
+        icon: 'box-open',
         fields: [
             n('DropItemMaxNum', 'Max dropped items'),
             n('DropItemMaxNum_UNKO', 'Max dropped items (UNKO)'),
@@ -121,7 +121,7 @@ export const palworldSchema: Schema = [
     {
         id: 'base',
         title: 'Bases & Guilds',
-        icon: 'fa-solid fa-warehouse',
+        icon: 'warehouse',
         fields: [
             n('BaseCampMaxNum', 'Max base camps'),
             n('BaseCampWorkerMaxNum', 'Max base workers'),
@@ -139,7 +139,7 @@ export const palworldSchema: Schema = [
     {
         id: 'misc',
         title: 'Chat & Misc',
-        icon: 'fa-solid fa-comment',
+        icon: 'comment',
         fields: [
             n('ChatPostLimitPerMinute', 'Chat posts / minute'),
             b('bShowPlayerList', 'Show player list'),
@@ -150,7 +150,7 @@ export const palworldSchema: Schema = [
     {
         id: 'network',
         title: 'Networking / Relay',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             t('PublicIP', 'Public IP (empty behind a relay)'),
             n('PublicPort', 'Public port'),

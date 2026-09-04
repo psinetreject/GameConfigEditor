@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
 import GameConfigTab from './GameConfigTab.vue';
+import { panel } from '../test/panel';
 
 vi.mock('axios', () => ({
     default: {
@@ -30,7 +31,6 @@ function tab() {
         },
         global: {
             stubs: {
-                Banner: { template: '<div><slot/><slot name="action"/><slot name="detail"/></div>' },
                 ConfigEditor: {
                     name: 'ConfigEditor',
                     props: ['content'],
@@ -45,7 +45,6 @@ describe('GameConfigTab request ordering', () => {
     beforeEach(() => {
         vi.mocked(axios.get).mockReset();
         vi.mocked(axios.post).mockReset();
-        vi.restoreAllMocks();
     });
 
     it('ignores an older load that finishes after the newly selected file', async () => {
@@ -54,9 +53,9 @@ describe('GameConfigTab request ordering', () => {
         vi.mocked(axios.get).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
 
         const wrapper = tab();
-        const selectors = wrapper.findAll('button');
-        expect(selectors).toHaveLength(2);
-        await selectors[1].trigger('click');
+        const files = wrapper.findAll('[data-test="config-file"]');
+        expect(files).toHaveLength(2);
+        await files[1].trigger('click');
 
         second.resolve({ data: 'new-file-content' });
         await flushPromises();
@@ -69,15 +68,16 @@ describe('GameConfigTab request ordering', () => {
 
     it('does not switch files when the current editor has unsaved changes and the user cancels', async () => {
         vi.mocked(axios.get).mockResolvedValue({ data: 'loaded-content' });
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        panel.answer = false;
         const wrapper = tab();
         await flushPromises();
 
         wrapper.findComponent({ name: 'ConfigEditor' }).vm.$emit('dirty-change', true);
         await wrapper.vm.$nextTick();
-        await wrapper.findAll('button')[1].trigger('click');
+        await wrapper.findAll('[data-test="config-file"]')[1].trigger('click');
+        await flushPromises();
 
-        expect(confirm).toHaveBeenCalledOnce();
+        expect(panel.dialog.warning).toHaveBeenCalledOnce();
         expect(axios.get).toHaveBeenCalledOnce();
         expect(wrapper.get('[data-test="editor"]').text()).toBe('loaded-content');
     });
@@ -107,7 +107,6 @@ describe('GameConfigTab request ordering', () => {
             .mockResolvedValueOnce({ data: 'original-content' })
             .mockResolvedValueOnce({ data: 'externally-changed-content' })
             .mockResolvedValueOnce({ data: 'externally-changed-content' });
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
         const wrapper = tab();
         await flushPromises();
 
@@ -117,12 +116,12 @@ describe('GameConfigTab request ordering', () => {
         expect(axios.post).not.toHaveBeenCalled();
         expect(wrapper.text()).toContain('changed since it was loaded');
         expect(wrapper.text()).not.toContain('merge');
-        const reload = wrapper.findAll('button').find((button) => button.text() === 'Reload');
-        expect(reload).toBeTruthy();
-        await reload!.trigger('click');
+        const reload = wrapper.get('[data-test="retry"]');
+        expect(reload.text()).toBe('Reload');
+        await reload.trigger('click');
         await flushPromises();
 
-        expect(confirm).toHaveBeenCalledOnce();
+        expect(panel.dialog.warning).toHaveBeenCalledOnce();
         expect(axios.get).toHaveBeenCalledTimes(3);
         expect(wrapper.get('[data-test="editor"]').text()).toBe('externally-changed-content');
     });
@@ -148,6 +147,7 @@ describe('GameConfigTab request ordering', () => {
         expect(axios.post).toHaveBeenCalledTimes(2);
         expect(wrapper.getComponent({ name: 'ConfigEditor' }).props('content')).toBe('second-normalized\n');
         expect(wrapper.text()).not.toContain('changed since it was loaded');
+        expect(panel.message.success).toHaveBeenCalledTimes(2);
     });
 
     it('reports a failed pre-save read as verification failure without uploading', async () => {

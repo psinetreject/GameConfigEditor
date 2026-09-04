@@ -7,7 +7,10 @@ import { palworldFormat } from '../formats/palworld';
 import type { ConfigDoc } from '../formats/types';
 import type { GameConfig } from '../games/registry';
 
-vi.mock('@gameap/plugin-sdk', () => ({ useServer: () => ({ value: null }) }));
+vi.mock('@gameap/plugin-sdk', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@gameap/plugin-sdk')>()),
+    useServer: () => ({ value: null }),
+}));
 
 const game: GameConfig = {
     gameId: 'test',
@@ -19,7 +22,7 @@ const game: GameConfig = {
         {
             id: 'main',
             title: 'Main',
-            icon: 'fa-solid fa-gear',
+            icon: 'gear',
             fields: [{ key: 'name', label: 'Name', type: 'text' }],
         },
     ],
@@ -45,7 +48,7 @@ describe('ConfigEditor save state', () => {
         const input = wrapper.get('input[type="text"]');
         await input.setValue('after');
 
-        const save = wrapper.get('button');
+        const save = wrapper.get('[data-test="save"]');
         expect(save.attributes('disabled')).toBeUndefined();
         await save.trigger('click');
 
@@ -69,7 +72,7 @@ describe('ConfigEditor save state', () => {
         const input = wrapper.get('input[type="text"]');
         await input.setValue('after');
 
-        const save = wrapper.get('button');
+        const save = wrapper.get('[data-test="save"]');
         expect(input.attributes('disabled')).toBe('');
         expect(save.attributes('disabled')).toBe('');
         await save.trigger('click');
@@ -99,7 +102,7 @@ describe('ConfigEditor save state', () => {
 
         const clear = wrapper.findAll('button').find((button) => button.text().includes('Clear public IP'))!;
         await clear.trigger('click');
-        await wrapper.findAll('button').find((button) => button.text() === 'Save')!.trigger('click');
+        await wrapper.get('[data-test="save"]').trigger('click');
 
         const saved = wrapper.emitted('save')![0][0] as string;
         expect(saved).toBe('OptionSettings=(ServerName="Test")');

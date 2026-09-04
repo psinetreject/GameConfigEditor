@@ -54,7 +54,7 @@ describe('resolve', () => {
             schema,
             note,
         });
-        const list = [mk('a', [{ id: 'g', title: 'G', icon: 'i', fields: [] }], 'a note'), mk('b', undefined)];
+        const list = [mk('a', [{ id: 'g', title: 'G', icon: 'gear', fields: [] }], 'a note'), mk('b', undefined)];
         const r = resolveIn(list, undefined, 'shared.cfg')!;
         expect(r).toBeDefined();
         expect(r.format).toBe(fmt); // shared format is safe to keep

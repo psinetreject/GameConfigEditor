@@ -13,7 +13,7 @@ export const sampSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('hostname', 'Server name (browser)'),
             t('password', 'Join password (empty = public)'),
@@ -27,7 +27,7 @@ export const sampSchema: Schema = [
     {
         id: 'content',
         title: 'Gamemode & Scripts',
-        icon: 'fa-solid fa-puzzle-piece',
+        icon: 'puzzle-piece',
         fields: [
             t('gamemode0', 'Gamemode (name and repeat count)'),
             t('filterscripts', 'Filterscripts (space-separated)'),
@@ -38,7 +38,7 @@ export const sampSchema: Schema = [
     {
         id: 'listing',
         title: 'Listing & Query',
-        icon: 'fa-solid fa-satellite-dish',
+        icon: 'satellite-dish',
         fields: [
             b('announce', 'Announce to the master list'),
             b('query', 'Answer browser queries'),
@@ -49,7 +49,7 @@ export const sampSchema: Schema = [
     {
         id: 'rates',
         title: 'Sync Rates & Anti-Flood',
-        icon: 'fa-solid fa-gauge-high',
+        icon: 'gauge-high',
         fields: [
             n('onfoot_rate', 'On-foot sync rate (ms)'),
             n('incar_rate', 'In-car sync rate (ms)'),
@@ -64,7 +64,7 @@ export const sampSchema: Schema = [
     {
         id: 'logging',
         title: 'Logging',
-        icon: 'fa-solid fa-file-lines',
+        icon: 'file-lines',
         fields: [
             b('chatlogging', 'Log chat'),
             b('timestamp', 'Timestamp log lines'),

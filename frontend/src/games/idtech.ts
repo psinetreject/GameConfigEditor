@@ -27,7 +27,7 @@ const quakeShared: Group[] = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('sv_hostname', 'Server name (browser)'),
             t('rconpassword', 'RCON password'),
@@ -38,7 +38,7 @@ const quakeShared: Group[] = [
     {
         id: 'gameplay',
         title: 'Gameplay',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             n('sv_maxclients', 'Max players'),
             n('timelimit', 'Time limit (min)'),
@@ -52,7 +52,7 @@ const quakeShared: Group[] = [
     {
         id: 'network',
         title: 'Network',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('sv_maxRate', 'Max client rate (0 = unlimited)'),
             b('sv_pure', 'Enforce matching game files'),
@@ -68,7 +68,7 @@ const cod4Schema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('sv_hostname', 'Server name (browser)'),
             t('rcon_password', 'RCON password'),
@@ -79,7 +79,7 @@ const cod4Schema: Schema = [
     {
         id: 'gameplay',
         title: 'Gameplay',
-        icon: 'fa-solid fa-gamepad',
+        icon: 'gamepad',
         fields: [
             n('sv_maxclients', 'Max players'),
             n('scr_game_gametype', 'Game type'),
@@ -92,7 +92,7 @@ const cod4Schema: Schema = [
     {
         id: 'network',
         title: 'Network',
-        icon: 'fa-solid fa-network-wired',
+        icon: 'network-wired',
         fields: [
             n('sv_maxRate', 'Max client rate (0 = unlimited)'),
             b('sv_pure', 'Enforce matching game files'),
@@ -109,7 +109,7 @@ const fivemSchema: Schema = [
     {
         id: 'identity',
         title: 'Server / Identity',
-        icon: 'fa-solid fa-id-card',
+        icon: 'id-card',
         fields: [
             t('sv_hostname', 'Server name (browser)'),
             t('sv_projectName', 'Project name'),
@@ -121,7 +121,7 @@ const fivemSchema: Schema = [
     {
         id: 'slots',
         title: 'Players & Access',
-        icon: 'fa-solid fa-users',
+        icon: 'users',
         fields: [
             n('sv_maxclients', 'Max players'),
             b('sv_scriptHookAllowed', 'Allow script hook'),
