@@ -404,13 +404,6 @@ written down so a later change doesn't quietly undo one.
   An older image capped at Go 1.25 fails at the compile step.
 - **gRPC stubs trimmed.** `pkg/proto` ships host-side `*_grpc.pb.go` whose TLS
   code TinyGo can't compile, so `build.sh` deletes them. The guest never uses them.
-- **VCS stamping is off for the WASM build** (`-buildvcs=false` in `GOFLAGS`).
-  Docker Desktop presents the bind-mounted repository root to the container as
-  owned by root while the files keep the host uid, so git inside the container
-  refuses the repository as "dubious ownership" and `tinygo build` stops with
-  `error obtaining VCS status`. Nothing needs the stamp: the plugin version comes
-  from `VERSION`, not from git. A Linux CI runner never hit this because there
-  the mount keeps its owner.
 - **SDK vendored via `replace`.** `github.com/gameap/gameap` is v4.x with no
   `/v4` module path, so it can't be `go get`-ed - it's cloned to `./.sdk/gameap`.
 - **CSS must be `plugin.css`.** Vite names a library stylesheet after the

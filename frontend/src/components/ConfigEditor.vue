@@ -221,7 +221,9 @@ const note = game?.note;
              Sticky, so Save stays on screen while the page scrolls through a long
              schema (Palworld alone is ~95 fields). -->
         <div v-if="embedded" class="gce-actions">
-            <GStatusBadge v-if="dirty" color="orange" text="Unsaved changes" />
+            <!-- `status` is what panel 4.4.1's badge reads (and requires); `color`
+                 takes over from the release after it. -->
+            <GStatusBadge v-if="dirty" status="working" color="orange" text="Unsaved changes" />
             <GButton
                 color="green"
                 class="ml-auto"

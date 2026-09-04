@@ -9,7 +9,6 @@
  * that ships e.g. `id-card` itself is picked up and ours is skipped.
  */
 export const PANEL_ICONS = [
-    'box-open',
     'broom',
     'comments',
     'download',
@@ -35,6 +34,9 @@ export const PLUGIN_ICONS = {
     'binoculars': 'fa-solid fa-binoculars',
     'biohazard': 'fa-solid fa-biohazard',
     'bolt': 'fa-solid fa-bolt',
+    // In the panel's own registry only after 4.4.1; on 4.4.1 it has to come from
+    // here, and registerPluginIcons() skips it once a panel ships it.
+    'box-open': 'fa-solid fa-box-open',
     'bug': 'fa-solid fa-bug',
     'comment': 'fa-solid fa-comment',
     'comment-slash': 'fa-solid fa-comment-slash',

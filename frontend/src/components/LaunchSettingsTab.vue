@@ -232,7 +232,7 @@ load();
                             <span class="inline-flex flex-wrap items-center gap-2 min-w-0">
                                 <span>{{ d.label || d.name }}</span>
                                 <code class="gce-key">{{ d.name }}</code>
-                                <GStatusBadge v-if="d.admin_var" color="light" text="admin" />
+                                <GStatusBadge v-if="d.admin_var" status="waiting" color="light" text="admin" />
                             </span>
                         </template>
                         <div class="w-full min-w-0">
@@ -248,7 +248,9 @@ load();
             </n-form>
 
             <div class="gce-actions">
-                <GStatusBadge v-if="dirty" color="orange" text="Unsaved changes" />
+                <!-- `status` is what panel 4.4.1's badge reads (and requires); `color`
+                     takes over from the release after it. -->
+                <GStatusBadge v-if="dirty" status="working" color="orange" text="Unsaved changes" />
                 <GButton
                     color="green"
                     class="ml-auto"
