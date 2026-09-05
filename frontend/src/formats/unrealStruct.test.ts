@@ -61,6 +61,28 @@ describe('structField', () => {
     });
 });
 
+describe('parseUnrealStruct, subscripted members', () => {
+    it('accepts a fixed-size array member, which Unreal writes with an index', () => {
+        // ARK's LevelExperienceRampOverrides is written this way. Rejecting the
+        // subscript made the whole struct parse as null, so a perfectly valid
+        // line was reported to the user as unrecognised.
+        expect(parseUnrealStruct('(ExperiencePointsForLevel[0]=10,ExperiencePointsForLevel[1]=25)')).toEqual({
+            'ExperiencePointsForLevel[0]': '10',
+            'ExperiencePointsForLevel[1]': '25',
+        });
+    });
+
+    it('still refuses things that are not identifiers', () => {
+        // A tolerant parser is not a credulous one: a key it cannot vouch for
+        // is skipped, and a struct with nothing left is null rather than {}.
+        expect(parseUnrealStruct('(1Bad=x)')).toBeNull();
+        expect(parseUnrealStruct('(Also[bad]=x)')).toBeNull();
+        expect(parseUnrealStruct('(Trailing[0=x)')).toBeNull();
+        // ...but one good pair alongside a bad one still yields the good one.
+        expect(parseUnrealStruct('(1Bad=x,Good[2]=y)')).toEqual({ 'Good[2]': 'y' });
+    });
+});
+
 describe('isStructTrue', () => {
     it('accepts every spelling Unreal uses for true', () => {
         for (const v of ['True', 'true', 'TRUE', '1', 'yes', 'on']) expect(isStructTrue(v), v).toBe(true);

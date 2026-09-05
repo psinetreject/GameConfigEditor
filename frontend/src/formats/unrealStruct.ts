@@ -78,8 +78,12 @@ export function parseUnrealStruct(raw: string): Record<string, string> | null {
         const eq = item.indexOf('=');
         if (eq <= 0) continue;
         const key = item.slice(0, eq).trim();
-        // An identifier, or this isn't a Key=Value pair we should trust.
-        if (!/^[A-Za-z_]\w*$/.test(key)) continue;
+        // An identifier - optionally subscripted, because Unreal writes a
+        // fixed-size array member as `ExperiencePointsForLevel[0]=10` inside the
+        // struct (ARK's LevelExperienceRampOverrides is the common one). Without
+        // the subscript the whole row fails to parse and is reported as
+        // unrecognised, which is a confusing way to say "this is fine".
+        if (!/^[A-Za-z_]\w*(?:\[\d+\])?$/.test(key)) continue;
         out[key] = unquote(item.slice(eq + 1).trim());
         found++;
     }

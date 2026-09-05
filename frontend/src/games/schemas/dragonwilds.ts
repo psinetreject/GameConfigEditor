@@ -90,6 +90,13 @@ export const dragonwildsSchema: Schema = [
             empty:
                 'No players recorded yet. The server adds an entry the first time someone enters the admin ' +
                 'password on the Server Management screen.',
+            // Read-only here for a stronger reason than the default note gives:
+            // the server does not merely own the value, it rewrites this file on
+            // shutdown, so an edit made here would be discarded rather than just
+            // being awkward to express.
+            note:
+                'Written by the server. Ban and unban from the in-game Server Management screen - the server ' +
+                'rewrites this file and would overwrite an edit made here.',
         },
     },
 ];

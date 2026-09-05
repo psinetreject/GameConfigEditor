@@ -39,6 +39,28 @@ export interface TableColumn {
     label: string;
     /** Widget and coercion for the cell. Defaults to 'text'. */
     type?: FType;
+    /** Choices for a `select` cell (Bedrock's visitor/member/operator). */
+    options?: string[];
+}
+
+/** What every table kind carries, whatever its rows are read from. */
+interface TableBase {
+    columns: TableColumn[];
+    /** Shown instead of the table when it has no rows. */
+    empty?: string;
+    /**
+     * Drop the whole group when there are no rows, instead of showing `empty`.
+     *
+     * For a table over an OPTIONAL list. A curated field renders even when the
+     * file omits it, because an empty input is something you can fill in; an
+     * empty table is not - no kind here adds rows - so a form that always shows
+     * one is a form with a dead section in it. ARK's Game.ini is the case that
+     * needs this: eight override lists, of which a given server uses none or
+     * two.
+     */
+    hideWhenEmpty?: boolean;
+    /** Replaces the default footer note under the table. */
+    note?: string;
 }
 
 /**
@@ -49,13 +71,10 @@ export interface TableColumn {
  * single value - so editing one would mean patching a substring of a line the
  * running server also writes.
  */
-export interface StructRowTable {
+export interface StructRowTable extends TableBase {
     kind: 'struct-rows';
     /** Address of the repeated key, e.g. addr(section, 'KnownPlayerList'). */
     address: string;
-    columns: TableColumn[];
-    /** Shown when the key appears nowhere in the file. */
-    empty?: string;
 }
 
 /**
@@ -66,13 +85,17 @@ export interface StructRowTable {
  *
  * Needs a format that walks into arrays (json.ts in `arrays: 'expand'` mode).
  */
-export interface ArrayRowTable {
+export interface ArrayRowTable extends TableBase {
     kind: 'array-rows';
-    /** Dotted path of the array itself, e.g. 'userGroups'. */
+    /**
+     * Dotted path of the array itself, e.g. 'userGroups'.
+     *
+     * `''` is the document root, for a file that IS the array: Minecraft's
+     * ops.json and whitelist.json, and Bedrock's allowlist.json and
+     * permissions.json, are all a bare list of records with nothing to hang a
+     * name off.
+     */
     path: string;
-    columns: TableColumn[];
-    /** Shown when the array is absent or empty. */
-    empty?: string;
 }
 
 /**

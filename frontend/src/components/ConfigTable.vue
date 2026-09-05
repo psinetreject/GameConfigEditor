@@ -25,7 +25,7 @@
 import { computed } from 'vue';
 import type { ConfigDoc, ConfigValue, TableSpec } from '../formats/types';
 import type { WritableComputedRef } from 'vue';
-import { arrayTableRows, cellAddress } from '../composables/useConfigForm';
+import { arrayTableRows, cellAddress, tableRowCount } from '../composables/useConfigForm';
 import { isStructTrue, parseUnrealStruct, structField } from '../formats/unrealStruct';
 import FieldInput from './FieldInput.vue';
 
@@ -55,9 +55,24 @@ const arrayRows = computed(() =>
     props.spec.kind === 'array-rows' ? arrayTableRows(props.doc, props.spec.path) : [],
 );
 
-const isEmpty = computed(() =>
-    props.spec.kind === 'array-rows' ? arrayRows.value.length === 0 : structRows.value.total === 0,
-);
+const isEmpty = computed(() => tableRowCount(props.doc, props.spec) === 0);
+
+/**
+ * Why this table behaves the way it does, shown under it.
+ *
+ * A schema can replace it, because the reason is not the same for every file. A
+ * struct table is read-only either because the SERVER owns the list and would
+ * overwrite an edit (Dragonwilds' roster) or simply because a struct literal is
+ * one indivisible value (ARK's override lists) - and telling an ARK admin to use
+ * the in-game Server Management screen would be nonsense.
+ */
+const DEFAULT_NOTE: Record<TableSpec['kind'], string> = {
+    'struct-rows':
+        'Read-only: each row is a single value in the file, so a cell cannot be addressed on its own. Change ' +
+        'these lines in the plain file editor.',
+    'array-rows': 'Edits apply to the entries already in the file. Adding or removing one needs the plain file editor.',
+};
+const footer = computed(() => props.spec.note ?? DEFAULT_NOTE[props.spec.kind]);
 
 const cell = (row: Record<string, string>, key: string) => structField(row, key) ?? '';
 const address = (row: number, key: string) =>
@@ -89,6 +104,7 @@ const address = (row: number, key: string) =>
                                 v-if="models?.[address(row, col.key)]"
                                 v-model="models[address(row, col.key)].value"
                                 :type="col.type ?? 'text'"
+                                :options="col.options"
                                 :disabled="saving"
                             />
                             <span v-else class="text-muted">&mdash;</span>
@@ -127,12 +143,6 @@ const address = (row: number, key: string) =>
             <pre v-for="(raw, i) in structRows.unparsed" :key="i" class="gce-table-raw">{{ raw }}</pre>
         </div>
 
-        <p v-if="spec.kind === 'struct-rows'" class="gce-section-hint">
-            Written by the server. Ban and unban from the in-game Server Management screen - the server rewrites this
-            file and would overwrite an edit made here.
-        </p>
-        <p v-else class="gce-section-hint">
-            Edits apply to the entries already in the file. Adding or removing one needs the plain file editor.
-        </p>
+        <p class="gce-section-hint">{{ footer }}</p>
     </template>
 </template>

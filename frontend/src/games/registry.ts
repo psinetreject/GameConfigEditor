@@ -33,6 +33,7 @@ import { mtaSchema } from './schemas/mta';
 import { factorioSchema } from './schemas/factorio';
 import { enshroudedSchema } from './schemas/enshrouded';
 import { dragonwildsSchema } from './schemas/dragonwilds';
+import { allowlistSchema, opsSchema, permissionsSchema, whitelistSchema } from './schemas/playerlists';
 import { sourceGames } from './source';
 import { goldSourceGames } from './goldsource';
 import { idTechGames } from './idtech';
@@ -263,9 +264,11 @@ export const games: GameConfig[] = [
         gameName: 'Minecraft (operators)',
         fileName: 'ops.json',
         dir: '',
-        // No schema: the file is a list of players, not a set of settings - the
-        // generic editor renders one group per entry.
+        // The file is a list of players rather than a set of settings, so the
+        // schema is one root-path table: a row each, instead of the generic
+        // editor's one titled group per entry.
         format: jsonListFormat,
+        schema: opsSchema,
         note: PLAYER_LIST_NOTE,
         stopWarning: true,
     },
@@ -275,6 +278,7 @@ export const games: GameConfig[] = [
         fileName: 'whitelist.json',
         dir: '',
         format: jsonListFormat,
+        schema: whitelistSchema,
         note: PLAYER_LIST_NOTE,
         stopWarning: true,
     },
@@ -295,6 +299,7 @@ export const games: GameConfig[] = [
         fileName: 'allowlist.json',
         dir: '',
         format: jsonListFormat,
+        schema: allowlistSchema,
         note: PLAYER_LIST_NOTE,
         stopWarning: true,
     },
@@ -304,6 +309,7 @@ export const games: GameConfig[] = [
         fileName: 'permissions.json',
         dir: '',
         format: jsonListFormat,
+        schema: permissionsSchema,
         note: PLAYER_LIST_NOTE,
         stopWarning: true,
     },

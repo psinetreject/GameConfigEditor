@@ -4,12 +4,12 @@
  * the codec into the doc.
  */
 import { describe, expect, it } from 'vitest';
-import { inferGroups, inferType, useConfigForm } from './useConfigForm';
+import { arrayTableRows, cellAddress, inferGroups, inferType, tableCells, tableRowCount, useConfigForm } from './useConfigForm';
 import { makeIniFormat, iniFormat } from '../formats/ini';
 import { keyvalueFormat } from '../formats/keyvalue';
-import { jsonFormat } from '../formats/json';
+import { jsonFormat, jsonListFormat } from '../formats/json';
 import { addr } from '../formats/shared';
-import type { Schema } from '../formats/types';
+import type { Schema, TableColumn } from '../formats/types';
 
 describe('inferType', () => {
     it('recognises booleans case-insensitively', () => {
@@ -222,5 +222,101 @@ describe('useConfigForm', () => {
         expect(dirty.value).toBe(false);
         expect(writeError.value).toContain('List');
         expect(JSON.parse(doc.serialize()).List).toEqual([1, 2]);
+    });
+});
+
+describe('table paths', () => {
+    const LIST = '[{ "name": "Ann", "level": 4 }, { "name": "Bob", "level": 1 }]';
+    const NESTED = '{ "roles": [{ "name": "Ann" }, { "name": "Bob" }] }';
+
+    const rootTable = (columns: TableColumn[] = [{ key: 'name', label: 'Player' }]): Schema => [
+        { id: 'list', title: 'List', icon: 'users', fields: [], table: { kind: 'array-rows', path: '', columns } },
+    ];
+
+    it('treats the empty path as the document root, not as one empty segment', () => {
+        // A file that IS the array addresses its cells as `0.name`. Splitting
+        // '' would give [''], which prefixes nothing, so the table would find no
+        // rows and quietly render its empty note over a full file.
+        const doc = jsonListFormat.parse(LIST)!;
+        expect(doc.keys()).toEqual(['0.name', '0.level', '1.name', '1.level']);
+        expect(arrayTableRows(doc, '')).toEqual([0, 1]);
+        expect(cellAddress('', 0, 'name')).toBe('0.name');
+    });
+
+    it('still prefixes a named path', () => {
+        const doc = jsonListFormat.parse(NESTED)!;
+        expect(arrayTableRows(doc, 'roles')).toEqual([0, 1]);
+        expect(cellAddress('roles', 1, 'name')).toBe('roles.1.name');
+        // A path that names nothing has no rows - it must not fall back to root.
+        expect(arrayTableRows(doc, 'missing')).toEqual([]);
+    });
+
+    it('covers the cells a table renders, and only those', () => {
+        // The root path spans the whole file, so excluding its subtree would
+        // hide every key. Coverage is per cell: a column'd key is a cell, an
+        // uncovered one stays a normal field in a generic group.
+        const doc = jsonListFormat.parse(LIST)!;
+        expect(tableCells(doc, rootTable()).map((f) => f.key)).toEqual(['0.name', '1.name']);
+        const inferred = inferGroups(doc, rootTable());
+        expect(inferred.flatMap((g) => g.fields.map((f) => f.key))).toEqual(['0.level', '1.level']);
+    });
+
+    it('carries a column\'s select options onto its cells', () => {
+        const doc = jsonListFormat.parse(LIST)!;
+        const withSelect = rootTable([{ key: 'name', label: 'Player', type: 'select', options: ['Ann', 'Bob'] }]);
+        const cells = tableCells(doc, withSelect);
+        expect(cells[0].type).toBe('select');
+        expect(cells[0].options).toEqual(['Ann', 'Bob']);
+        // A column without options must not grow an empty one - FieldInput
+        // treats `[]` and undefined differently for a non-select.
+        expect(tableCells(doc, rootTable())[0]).not.toHaveProperty('options');
+    });
+});
+
+describe('hideWhenEmpty', () => {
+    const withRows = (hideWhenEmpty?: boolean): Schema => [
+        {
+            id: 'list',
+            title: 'List',
+            icon: 'users',
+            fields: [],
+            table: { kind: 'array-rows', path: 'roles', columns: [{ key: 'name', label: 'Player' }], hideWhenEmpty },
+        },
+    ];
+
+    it('counts rows the same way for both table kinds', () => {
+        const json = jsonListFormat.parse('{ "roles": [{ "name": "Ann" }] }')!;
+        expect(tableRowCount(json, withRows()[0].table!)).toBe(1);
+
+        const ci = makeIniFormat('t', { caseInsensitive: true });
+        const ini = ci.parse('[s]\nList=(A=1)\nList=(A=2)\n')!;
+        expect(tableRowCount(ini, { kind: 'struct-rows', address: addr('s', 'List'), columns: [] })).toBe(2);
+        expect(tableRowCount(ini, { kind: 'struct-rows', address: addr('s', 'Nope'), columns: [] })).toBe(0);
+    });
+
+    it('keeps an empty table by default, so its note can explain itself', () => {
+        const doc = jsonListFormat.parse('{ "roles": [] }')!;
+        expect(useConfigForm(doc, withRows(), jsonListFormat.codec).groups.value.map((g) => g.title)).toEqual(['List']);
+    });
+
+    it('drops an empty table when the schema asks, and keeps a populated one', () => {
+        const empty = jsonListFormat.parse('{ "roles": [] }')!;
+        expect(useConfigForm(empty, withRows(true), jsonListFormat.codec).groups.value.map((g) => g.title)).toEqual([]);
+
+        const full = jsonListFormat.parse('{ "roles": [{ "name": "Ann" }] }')!;
+        expect(useConfigForm(full, withRows(true), jsonListFormat.codec).groups.value.map((g) => g.title)).toEqual([
+            'List',
+        ]);
+    });
+
+    it('never drops a group that has fields, whatever its table says', () => {
+        const doc = jsonListFormat.parse('{ "roles": [], "other": 1 }')!;
+        const mixed: Schema = [
+            {
+                ...withRows(true)[0],
+                fields: [{ key: 'other', label: 'Other', type: 'number' }],
+            },
+        ];
+        expect(useConfigForm(doc, mixed, jsonListFormat.codec).groups.value.map((g) => g.title)).toEqual(['List']);
     });
 });

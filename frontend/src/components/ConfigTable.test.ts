@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
+import { NSelect } from 'naive-ui';
 import { describe, expect, it } from 'vitest';
 import ConfigTable from './ConfigTable.vue';
 import { addr } from '../formats/shared';
 import { useConfigForm } from '../composables/useConfigForm';
-import { resolve } from '../games/registry';
+import { games, resolve } from '../games/registry';
 import type { TableSpec } from '../formats/types';
 
 const SECTION = '/Script/Dominion.DedicatedServerSettings';
@@ -181,5 +182,69 @@ describe('ConfigTable (array rows, editable)', () => {
         const { wrapper } = open([]);
         expect(wrapper.find('table').exists()).toBe(false);
         expect(wrapper.text()).toMatch(/no user groups/i);
+    });
+});
+
+describe('ConfigTable footer note', () => {
+    /** Mount a struct table over ARK's Game.ini, which has no note of its own. */
+    function arkHarvest() {
+        const g = games.find((x) => x.gameId === 'ark' && x.fileName === 'Game.ini')!;
+        const doc = g.format.parse(
+            [
+                '[/script/shootergame.shootergamemode]',
+                'HarvestResourceItemAmountClassMultipliers=(ClassName="PrimalItemResource_Wood_C",Multiplier=2.0)',
+                'HarvestResourceItemAmountClassMultipliers=(ClassName="PrimalItemResource_Stone_C",Multiplier=1.5)',
+                '',
+            ].join('\n'),
+        )!;
+        const table = g.schema!.find((x) => x.id === 'harvest-classes')!.table!;
+        return mount(ConfigTable, { props: { spec: table, doc } });
+    }
+
+    it('renders ARK override lines as rows', () => {
+        const wrapper = arkHarvest();
+        expect(wrapper.findAll('thead th').map((th) => th.text())).toEqual(['#', 'Resource class', 'Multiplier']);
+        const rows = wrapper.findAll('tbody tr');
+        expect(rows).toHaveLength(2);
+        expect(rows[0].findAll('td').map((td) => td.text())).toEqual(['1', 'PrimalItemResource_Wood_C', '2.0']);
+        expect(rows[1].findAll('td')[2].text()).toBe('1.5');
+        // Read-only: no control anywhere in the table.
+        expect(wrapper.findAll('input')).toHaveLength(0);
+    });
+
+    it('explains a struct table generically when the schema gives no reason', () => {
+        // The default used to be Dragonwilds' wording, which told an ARK admin
+        // to unban people from a Server Management screen ARK does not have.
+        const text = arkHarvest().text();
+        expect(text).toMatch(/read-only/i);
+        expect(text).toMatch(/plain file editor/i);
+        expect(text).not.toMatch(/server management/i);
+    });
+
+    it('uses the schema\'s own note where one is given', () => {
+        const doc = docFor([player('1', 'Ann', '2', 'pw', 'False')]);
+        const text = mount(ConfigTable, { props: { spec: spec(), doc } }).text();
+        expect(text).toMatch(/server management/i);
+        expect(text).toMatch(/would overwrite an edit made here/i);
+    });
+});
+
+describe('ConfigTable select columns', () => {
+    it('hands a select column its options and current value', () => {
+        const g = resolve('minecraft-bedrock', 'permissions.json')!;
+        const doc = g.format.parse('[{ "xuid": "2535000000000001", "permission": "operator" }]')!;
+        const form = useConfigForm(doc, g.schema!, g.format.codec);
+        const wrapper = mount(ConfigTable, {
+            props: { spec: g.schema![0].table!, doc, models: form.models },
+        });
+
+        const select = wrapper.findComponent(NSelect);
+        expect(select.exists()).toBe(true);
+        expect(select.props('value')).toBe('operator');
+        expect(select.props('options')).toEqual([
+            { label: 'visitor', value: 'visitor' },
+            { label: 'member', value: 'member' },
+            { label: 'operator', value: 'operator' },
+        ]);
     });
 });
