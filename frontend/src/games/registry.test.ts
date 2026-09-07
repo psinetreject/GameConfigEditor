@@ -727,12 +727,75 @@ describe('gamesFor', () => {
             'allowlist.json',
             'permissions.json',
         ]);
+        expect(gamesFor('476400').map((g) => g.fileName)).toEqual([
+            'Vote.ini',
+            'Admin.ini',
+            'Server.ini',
+            'TeamKill.ini',
+            'Ban.ini',
+            'MapList.ini',
+        ]);
     });
 
     it('returns nothing for an unknown or missing game', () => {
         expect(gamesFor('not-a-game')).toEqual([]);
         expect(gamesFor(undefined)).toEqual([]);
         expect(gamesFor(null)).toEqual([]);
+    });
+});
+
+describe('Ground Branch', () => {
+    it('resolves all server configuration files from ServerConfig', () => {
+        for (const fileName of ['Vote.ini', 'Admin.ini', 'Server.ini', 'TeamKill.ini', 'Ban.ini', 'MapList.ini']) {
+            const game = resolve('476400', fileName)!;
+            expect(game).toBeDefined();
+            expect(configDir(game)).toBe('/GroundBranch/ServerConfig');
+            expect(game.format.id).toBe('groundbranch-ini');
+        }
+    });
+
+    it('round-trips repeated Unreal INI entries', () => {
+        const sample = [
+            '[/Script/RBZooKeeper.ZKVote]',
+            'VoteDuration=30',
+            'VoteSucceededTimeout=60',
+            'VoteFailedTimeout=180',
+            'VotingCommands=changemap',
+            'VotingCommands=nextmap',
+            'VotingCommands=kick',
+            '',
+            '[/Script/RBZooKeeper.ZKServer]',
+            'ServerName=SAS Proving Ground 10 (EU)',
+            'MaxPlayers=8',
+            'GameRules=(("AllowCheats", False))',
+            'ReadyCountdownTime=45',
+        ].join('\n');
+        const game = resolve('476400', 'Vote.ini')!;
+        const doc = game.format.parse(sample)!;
+        expect(doc.serialize()).toBe(sample);
+        expect(doc.getRaw('/Script/RBZooKeeper.ZKVote\0VoteDuration')).toBe('30');
+        expect(doc.getRaw('/Script/RBZooKeeper.ZKVote\0VotingCommands')).toBe('kick');
+    });
+
+    it('exposes GameRules tuple members as editable booleans', () => {
+        const sample = [
+            '[/Script/RBZooKeeper.ZKServer]',
+            'GameRules=(("AllowCheats", False),("AllowDeadChat", True),("BalanceTeams", True))',
+            'ReadyCountdownTime=45',
+        ].join('\n');
+        const game = resolve('476400', 'Server.ini')!;
+        const doc = game.format.parse(sample)!;
+        const cheats = '/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats';
+        const deadChat = '/Script/RBZooKeeper.ZKServer\0GameRules.AllowDeadChat';
+        const balance = '/Script/RBZooKeeper.ZKServer\0GameRules.BalanceTeams';
+
+        expect(doc.getRaw(cheats)).toBe('False');
+        expect(doc.getRaw(deadChat)).toBe('True');
+        expect(doc.getRaw(balance)).toBe('True');
+        expect(doc.setRaw(cheats, 'True')).toBe(true);
+        expect(doc.serialize()).toContain('("AllowCheats", True)');
+        expect(doc.serialize()).toContain('("AllowDeadChat", True)');
+        expect(doc.serialize()).toContain('ReadyCountdownTime=45');
     });
 });
 
