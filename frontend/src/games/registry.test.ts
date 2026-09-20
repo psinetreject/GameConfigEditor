@@ -797,6 +797,67 @@ describe('Ground Branch', () => {
         expect(doc.serialize()).toContain('("AllowDeadChat", True)');
         expect(doc.serialize()).toContain('ReadyCountdownTime=45');
     });
+
+    // The base format is case-insensitive and its setRaw creates a key it can't
+    // find, so a missed GameRules match doesn't fail - it writes a literal
+    // `GameRules.AllowCheats=True` line the game ignores and calls it success.
+    it('edits the tuple whatever case the file spells the key in', () => {
+        const sample = ['[/Script/RBZooKeeper.ZKServer]', 'gamerules=(("AllowCheats", False))', 'MaxPlayers=8'].join(
+            '\n',
+        );
+        const doc = resolve('476400', 'Server.ini')!.format.parse(sample)!;
+        const cheats = '/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats';
+
+        expect(doc.getRaw(cheats)).toBe('False');
+        expect(doc.setRaw(cheats, 'True')).toBe(true);
+        expect(doc.serialize()).toContain('gamerules=(("AllowCheats", True))');
+        expect(doc.serialize()).not.toContain('GameRules.AllowCheats=');
+    });
+
+    it('matches a rule name case-insensitively rather than duplicating it', () => {
+        const sample = ['[/Script/RBZooKeeper.ZKServer]', 'GameRules=(("allowcheats", False))'].join('\n');
+        const doc = resolve('476400', 'Server.ini')!.format.parse(sample)!;
+
+        expect(doc.setRaw('/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats', 'True')).toBe(true);
+        expect(doc.serialize()).toBe('[/Script/RBZooKeeper.ZKServer]\nGameRules=(("allowcheats", True))');
+    });
+
+    it('appends a rule the file omits', () => {
+        const sample = ['[/Script/RBZooKeeper.ZKServer]', 'GameRules=(("AllowCheats", False))'].join('\n');
+        const doc = resolve('476400', 'Server.ini')!.format.parse(sample)!;
+        const balance = '/Script/RBZooKeeper.ZKServer\0GameRules.BalanceTeams';
+
+        expect(doc.getRaw(balance)).toBeUndefined();
+        expect(doc.setRaw(balance, 'True')).toBe(true);
+        expect(doc.serialize()).toContain('GameRules=(("AllowCheats", False),("BalanceTeams", True))');
+        expect(doc.getRaw(balance)).toBe('True');
+    });
+
+    it('writes a GameRules line when the file has none', () => {
+        const sample = ['[/Script/RBZooKeeper.ZKServer]', 'MaxPlayers=8'].join('\n');
+        const doc = resolve('476400', 'Server.ini')!.format.parse(sample)!;
+        const cheats = '/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats';
+
+        expect(doc.setRaw(cheats, 'True')).toBe(true);
+        expect(doc.serialize()).toContain('GameRules=(("AllowCheats", True))');
+        expect(doc.serialize()).not.toContain('GameRules.AllowCheats=');
+        expect(doc.getRaw(cheats)).toBe('True');
+    });
+
+    it('hides the raw GameRules key and refuses to remove a single rule', () => {
+        const sample = ['[/Script/RBZooKeeper.ZKServer]', 'GameRules=(("AllowCheats", False))', 'MaxPlayers=8'].join(
+            '\n',
+        );
+        const doc = resolve('476400', 'Server.ini')!.format.parse(sample)!;
+
+        expect(doc.keys()).toEqual([
+            '/Script/RBZooKeeper.ZKServer\0MaxPlayers',
+            '/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats',
+        ]);
+        expect(doc.has('/Script/RBZooKeeper.ZKServer\0GameRules')).toBe(false);
+        expect(doc.remove('/Script/RBZooKeeper.ZKServer\0GameRules.AllowCheats')).toBe(false);
+        expect(doc.serialize()).toBe(sample);
+    });
 });
 
 describe('path helpers', () => {

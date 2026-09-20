@@ -11,7 +11,7 @@ shared config-format parsers.
 
 ## Supported games
 
-39 of the 41 games in GameAP's built-in catalog, plus seven added manually.
+39 of the 43 games in GameAP's built-in catalog, plus seven added manually.
 `game_id` is what the plugin matches on (`server.game_id`); the server app id is
 the Steam dedicated-server app from GameAP's own catalog, handy when adding a game
 to the panel.
@@ -97,7 +97,7 @@ one.
 #### Other
 | Game | `game_id` | Server app id | Config path |
 |---|---|---|---|
-| Ground Branch | `476400` | `476400` | `/GroundBranch/ServerConfig/{Vote,Admin,Server,TeamKill,Ban,MapList}.ini` |
+| Ground Branch | `476400` | - | `/GroundBranch/ServerConfig/{Vote,Admin,Server,TeamKill,Ban,MapList}.ini` |
 | TeamSpeak 3 | `teamspeak3` | - | `/ts3server.ini` |
 | GTA: San-Andreas Multiplayer | `samp` | - | `/server.cfg` |
 | GTA: Multi Theft Auto | `mta` | - | `/mods/deathmatch/mtaserver.conf` |
@@ -105,6 +105,8 @@ one.
 Ground Branch's `Server.ini` stores `GameRules` as a tuple list inside one INI
 value. The editor exposes each rule as a boolean field and changes only that
 tuple member, while repeated entries in the other files remain round-trippable.
+A rule the file leaves out is appended to the list, and a file with no
+`GameRules` line at all gets one written for it.
 
 Some paths are conventions rather than guarantees: Arma loads whatever `-config`
 names (and nothing if the argument is absent), the idTech engines resolve
@@ -133,13 +135,14 @@ with a raw-text fallback when a file doesn't parse. Hurtworld is registered that
 way on purpose: only `servername` is well documented, so the editor lists what
 the file actually holds rather than inventing keys.
 
-> **Manual-add games:** Palworld, Project Zomboid, V Rising, Factorio,
-> Enshrouded and Minecraft: Bedrock aren't in GameAP's catalog - they're added by
-> hand, so their `game_id` is whatever your panel uses. Palworld is assumed
-> `palworld`, Project Zomboid `projectzomboid`, Factorio `factorio`, Enshrouded
-> `enshrouded`, Dragonwilds `rsdw`, Bedrock `minecraft-bedrock`, and
+> **Manual-add games:** Palworld, Project Zomboid, V Rising, Enshrouded,
+> Dragonwilds, Ground Branch and Minecraft: Bedrock aren't in GameAP's catalog -
+> they're added by hand, so their `game_id` is whatever your panel uses. Palworld
+> is assumed `palworld`, Project Zomboid `projectzomboid`, Enshrouded
+> `enshrouded`, Dragonwilds `rsdw`, Bedrock `minecraft-bedrock`,
 > V Rising `1604030` (the game's Steam app id, which is how it was added here -
-> not the dedicated-server app `1829350`). If your server uses a different code,
+> not the dedicated-server app `1829350`), and Ground Branch `476400` (likewise
+> the game's own app id). If your server uses a different code,
 > the "Game Config" tab prints the actual one - change the matching `gameId` in
 > `frontend/src/games/registry.ts`.
 
