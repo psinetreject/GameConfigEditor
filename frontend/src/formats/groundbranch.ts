@@ -83,6 +83,12 @@ export function makeGroundBranchFormat(base: Format): Format {
                 address ? parseRules(baseDoc.getRaw(address) ?? '') : new Map();
 
             return {
+                // Spread first so anything this wrapper does NOT override -
+                // normKey today, getAllRaw and removeMany tomorrow, whatever
+                // the interface grows next - forwards to the base document
+                // instead of silently going missing. Only the members below
+                // actually behave differently here.
+                ...baseDoc,
                 keys: () => {
                     const address = rulesAddress();
                     if (!address) return baseDoc.keys();
@@ -122,10 +128,7 @@ export function makeGroundBranchFormat(base: Format): Format {
                 // Dropping a single tuple member isn't something the editor asks
                 // for; refuse rather than let the address reach the base doc.
                 remove: (address) => (ruleNameOf(address) === null ? baseDoc.remove(address) : false),
-                sectionOf: (address) => baseDoc.sectionOf(address),
                 labelOf: (address) => ruleNameOf(address) ?? baseDoc.labelOf(address),
-                normKey: (address) => baseDoc.normKey?.(address) ?? address,
-                serialize: () => baseDoc.serialize(),
             };
         },
     };
