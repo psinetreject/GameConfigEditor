@@ -216,7 +216,19 @@ export function useConfigForm(doc: ConfigDoc, schema: Schema, codec: Codec) {
     // use and the schema asked for it to be dropped (see hideWhenEmpty).
     const keep = (g: Group): boolean =>
         g.fields.length > 0 || (!!g.table && !(g.table.hideWhenEmpty && tableRowCount(doc, g.table) === 0));
-    const groups = computed<Group[]>(() => [...schema.filter(keep), ...inferred]);
+
+    // Applied once, here, alongside `inferred` above and `cells` below: this
+    // composable fixes STRUCTURE at load and lets VALUES change afterwards. A
+    // different file is a new ConfigEditor instance, and so a new form.
+    //
+    // Not left inside the computed below, even though `keep` reads the
+    // document. The doc is a plain closure Vue cannot observe, so a computed
+    // over it caches its first answer regardless - and making only this part
+    // re-run would be worse than not: `cells` and `models` are built once too,
+    // so a group that appeared later would render cells with no model behind
+    // them. Deciding it on one eager line says that outright.
+    const visible = schema.filter(keep);
+    const groups = computed<Group[]>(() => [...visible, ...inferred]);
 
     const cells = tableCells(doc, schema);
 
