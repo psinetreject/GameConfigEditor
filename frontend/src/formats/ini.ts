@@ -43,10 +43,15 @@ export function makeIniFormat(id: string, opts: IniOptions = {}): Format {
         const lines: Line[] = rawLines.map((t) => ({ text: t }));
         const table = orderedTable<number>(norm); // address -> line index (last occurrence)
         const sectionLast: Record<string, number> = {}; // norm(section) -> last line index inside it
+        // norm(address) -> EVERY line index, in file order. `table` keeps only the
+        // last, which is right for a repeated scalar; a repeated key used as a
+        // list (Unreal's KnownPlayerList) needs all of them.
+        const allLines: Record<string, number[]> = Object.create(null);
 
         const reindex = () => {
             table.clear();
             for (const k of Object.keys(sectionLast)) delete sectionLast[k];
+            for (const k of Object.keys(allLines)) delete allLines[k];
             let cur = '';
             lines.forEach((line, i) => {
                 const sm = line.text.match(SECTION);
@@ -69,7 +74,9 @@ export function makeIniFormat(id: string, opts: IniOptions = {}): Format {
                 }
                 const key = m[1].trim();
                 line.key = key;
-                table.set(addr(cur, key), i);
+                const address = addr(cur, key);
+                table.set(address, i);
+                (allLines[norm(address)] ??= []).push(i);
                 sectionLast[norm(cur)] = i;
             });
         };
@@ -86,6 +93,8 @@ export function makeIniFormat(id: string, opts: IniOptions = {}): Format {
                 const m = lines[i].text.match(KV);
                 return m ? m[2] : undefined;
             },
+            getAllRaw: (a) =>
+                (allLines[norm(a)] ?? []).map((i) => lines[i].text.match(KV)?.[2] ?? ''),
             setRaw: (a, val) => {
                 const i = table.get(a);
                 if (i !== undefined) {

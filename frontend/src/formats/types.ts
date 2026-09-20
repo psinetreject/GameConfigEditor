@@ -33,12 +33,88 @@ export interface FieldDef {
     help?: string;
 }
 
+/** One column of a table. `key` names a field within each row. */
+export interface TableColumn {
+    key: string;
+    label: string;
+    /** Widget and coercion for the cell. Defaults to 'text'. */
+    type?: FType;
+    /** Choices for a `select` cell (Bedrock's visitor/member/operator). */
+    options?: string[];
+}
+
+/** What every table kind carries, whatever its rows are read from. */
+interface TableBase {
+    columns: TableColumn[];
+    /** Shown instead of the table when it has no rows. */
+    empty?: string;
+    /**
+     * Drop the whole group when there are no rows, instead of showing `empty`.
+     *
+     * For a table over an OPTIONAL list. A curated field renders even when the
+     * file omits it, because an empty input is something you can fill in; an
+     * empty table is not - no kind here adds rows - so a form that always shows
+     * one is a form with a dead section in it. ARK's Game.ini is the case that
+     * needs this: eight override lists, of which a given server uses none or
+     * two.
+     */
+    hideWhenEmpty?: boolean;
+    /** Replaces the default footer note under the table. */
+    note?: string;
+}
+
+/**
+ * Rows are repeated occurrences of ONE address whose value is an Unreal struct
+ * literal: `KnownPlayerList=(UserId="..",bIsBanned=False)`, one line per row.
+ *
+ * Read-only. A cell here is not addressable on its own - the whole struct is a
+ * single value - so editing one would mean patching a substring of a line the
+ * running server also writes.
+ */
+export interface StructRowTable extends TableBase {
+    kind: 'struct-rows';
+    /** Address of the repeated key, e.g. addr(section, 'KnownPlayerList'). */
+    address: string;
+}
+
+/**
+ * Rows are the elements of an ARRAY, addressed by index: `path.0.name`,
+ * `path.1.name`, ... Each cell is therefore a real address the format already
+ * reads and writes, so these tables are editable through the ordinary model
+ * path - same codec, same type coercion, same dirty tracking as any field.
+ *
+ * Needs a format that walks into arrays (json.ts in `arrays: 'expand'` mode).
+ */
+export interface ArrayRowTable extends TableBase {
+    kind: 'array-rows';
+    /**
+     * Dotted path of the array itself, e.g. 'userGroups'.
+     *
+     * `''` is the document root, for a file that IS the array: Minecraft's
+     * ops.json and whitelist.json, and Bedrock's allowlist.json and
+     * permissions.json, are all a bare list of records with nothing to hang a
+     * name off.
+     */
+    path: string;
+}
+
+/**
+ * A table hangs off a Group rather than being another `FType` on purpose. A
+ * field maps one address to one scalar model; table rows are neither (many
+ * values, each a record), so modelling them as a field would bend the whole
+ * form contract for one shape. A group can simply carry a table instead of
+ * fields, and every existing code path is untouched.
+ */
+export type TableSpec = StructRowTable | ArrayRowTable;
+
 export interface Group {
     id: string;
     title: string;
     /** GIcon registry name (see src/icons.ts). */
     icon: IconName;
     fields: FieldDef[];
+    /** Renders below this group's fields; a group may have a table and no fields. */
+    table?: TableSpec;
 }
 
 /** A curated, human-labelled schema is just an ordered list of groups. */
@@ -59,6 +135,17 @@ export interface ConfigDoc {
     keys(): string[];
     has(address: string): boolean;
     getRaw(address: string): string | undefined;
+    /**
+     * EVERY raw value for an address, in file order.
+     *
+     * `getRaw` deliberately returns the last occurrence of a repeated key -
+     * the one the game reads for a scalar setting. But Unreal also uses a
+     * repeated key to express a LIST (one `KnownPlayerList=(...)` line per
+     * player), and for those the earlier lines are the data, not shadowed
+     * duplicates. Formats that can't repeat a key may omit this; callers fall
+     * back to `getRaw`.
+     */
+    getAllRaw?(address: string): string[];
     /**
      * Set (creating the entry if absent). `typeHint` lets formats whose raw
      * spelling does not carry enough information choose the right on-disk type

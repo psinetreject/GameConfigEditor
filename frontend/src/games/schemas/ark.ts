@@ -3,11 +3,36 @@
  *
  * Keys live under several INI sections, so field addresses are section-qualified
  * via section(). ARK INI keys are case-insensitive (handled by the ci INI format),
- * booleans are True/False, strings unquoted. Repeated/array keys
- * (PerLevelStatsMultiplier[...], engram overrides, etc.) are intentionally NOT
- * in the schema - they fall through to the raw "Advanced" groups untouched.
+ * booleans are True/False, strings unquoted.
+ *
+ * Game.ini's override LISTS are the other half of this file, and a plain field
+ * cannot show them. ARK writes a list as one repeated key, one Unreal struct
+ * literal per line:
+ *
+ *     HarvestResourceItemAmountClassMultipliers=(ClassName="...",Multiplier=2.0)
+ *     HarvestResourceItemAmountClassMultipliers=(ClassName="...",Multiplier=1.5)
+ *
+ * and `getRaw` resolves a repeated key to its LAST occurrence - correct for a
+ * scalar written twice, wrong for a list - so every line but the final one was
+ * invisible, and that one showed as an opaque struct string. They render as
+ * struct tables instead, one row per line, read-only because a cell is not
+ * separately addressable.
+ *
+ * Each is hidden when the file has no such line. A curated field is worth
+ * rendering empty (an empty input is something you can fill in), but no table
+ * kind adds rows, so an empty one is a dead section - and a stock Game.ini has
+ * none of these.
+ *
+ * Still not covered, deliberately: the deeply nested lists whose payload is
+ * itself a list of structs (ConfigOverrideSupplyCrateItems,
+ * ConfigOverrideItemCraftingCosts, ConfigAddNPCSpawnEntriesContainer). Columns
+ * would be a worse view of those than the raw line, which is what the Advanced
+ * group already gives. Same for the subscripted single structs
+ * (LevelExperienceRampOverrides, PerLevelStatsMultiplier_*): one struct with a
+ * hundred members is a row a hundred columns wide.
  */
-import type { Schema } from '../../formats/types';
+import type { Group, Schema, TableColumn } from '../../formats/types';
+import type { IconName } from '../../icons';
 import { section } from '../fields';
 
 const ss = section('ServerSettings');
@@ -15,6 +40,27 @@ const sess = section('SessionSettings');
 const gsess = section('/Script/Engine.GameSession');
 const motd = section('MessageOfTheDay');
 const gm = section('/script/shootergame.shootergamemode');
+
+/** A group that is nothing but a read-only table over one repeated Game.ini key. */
+const overrideList = (
+    id: string,
+    title: string,
+    icon: IconName,
+    key: string,
+    columns: TableColumn[],
+): Group => ({
+    id,
+    title,
+    icon,
+    fields: [],
+    table: { kind: 'struct-rows', address: gm.at(key), columns, hideWhenEmpty: true },
+});
+
+/** The shape shared by every per-class multiplier list: what, and by how much. */
+const classMultiplier = (label: string): TableColumn[] => [
+    { key: 'ClassName', label },
+    { key: 'Multiplier', label: 'Multiplier' },
+];
 
 export const arkGameUserSettingsSchema: Schema = [
     {
@@ -126,4 +172,58 @@ export const arkGameIniSchema: Schema = [
             gm.b('bAllowUnlimitedRespecs', 'Unlimited mindwipes'),
         ],
     },
+    overrideList(
+        'harvest-classes',
+        'Harvest amounts (per resource)',
+        'box-open',
+        'HarvestResourceItemAmountClassMultipliers',
+        classMultiplier('Resource class'),
+    ),
+    overrideList('stack-sizes', 'Item stack sizes', 'cubes', 'ConfigOverrideItemMaxQuantity', [
+        { key: 'ItemClassString', label: 'Item class' },
+        // Nested: `Quantity=(MaxItemQuantity=200,bIgnoreMultiplier=true)`. The
+        // struct parser splits the top level only, so this cell holds the inner
+        // literal verbatim - short enough to read, and honest about what the
+        // file says.
+        { key: 'Quantity', label: 'Quantity (struct)' },
+    ]),
+    overrideList('engram-unlocks', 'Auto-unlocked engrams', 'puzzle-piece', 'EngramEntryAutoUnlocks', [
+        { key: 'EngramClassName', label: 'Engram class' },
+        { key: 'LevelToAutoUnlock', label: 'Unlocked at level' },
+    ]),
+    overrideList('engram-overrides', 'Engram overrides', 'puzzle-piece', 'OverrideNamedEngramEntries', [
+        { key: 'EngramClassName', label: 'Engram class' },
+        { key: 'EngramHidden', label: 'Hidden', type: 'bool' },
+        { key: 'EngramPointsCost', label: 'Point cost' },
+        { key: 'EngramLevelRequirement', label: 'Level required' },
+        { key: 'RemoveEngramPreReq', label: 'Drop prerequisites', type: 'bool' },
+    ]),
+    overrideList(
+        'dino-damage',
+        'Wild dino damage (per species)',
+        'paw',
+        'DinoClassDamageMultipliers',
+        classMultiplier('Dino class'),
+    ),
+    overrideList(
+        'dino-resistance',
+        'Wild dino resistance (per species)',
+        'paw',
+        'DinoClassResistanceMultipliers',
+        classMultiplier('Dino class'),
+    ),
+    overrideList(
+        'tamed-dino-damage',
+        'Tamed dino damage (per species)',
+        'paw',
+        'TamedDinoClassDamageMultipliers',
+        classMultiplier('Dino class'),
+    ),
+    overrideList(
+        'tamed-dino-resistance',
+        'Tamed dino resistance (per species)',
+        'paw',
+        'TamedDinoClassResistanceMultipliers',
+        classMultiplier('Dino class'),
+    ),
 ];

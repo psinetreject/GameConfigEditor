@@ -352,10 +352,32 @@ describe('the Minecraft family', () => {
         expect(doc.keys()).toEqual(['0.name', '0.level']);
         expect(doc.setRaw('0.level', '3')).toBe(true);
         expect(JSON.parse(doc.serialize())).toEqual([{ name: 'Notch', level: 3 }]);
-        // The list files have no curated schema on purpose - entries vary in
-        // count, so the generic editor renders one group per player.
-        expect(g.schema).toBeUndefined();
         expect(g.note).toBeTruthy();
+    });
+
+    it('gives every player list a root-path table instead of a group per player', () => {
+        // These four files are a bare JSON array, so their addresses start at
+        // the row index and the table's path is the document root. Getting that
+        // wrong is silent: the table finds no rows and the generic editor
+        // renders one titled group per entry, which is what it did before.
+        const sharedNote = resolve('minecraft', 'ops.json')!.note;
+        expect(sharedNote).toMatch(/edit the entries/i);
+        for (const [game, file] of [
+            ['minecraft', 'ops.json'],
+            ['minecraft', 'whitelist.json'],
+            ['minecraft-bedrock', 'allowlist.json'],
+            ['minecraft-bedrock', 'permissions.json'],
+        ] as const) {
+            const g = resolve(game, file)!;
+            expect(g.schema, file).toHaveLength(1);
+            const table = g.schema![0].table;
+            expect(table?.kind, file).toBe('array-rows');
+            if (table?.kind !== 'array-rows') throw new Error(`${file}: expected an array-rows table`);
+            expect(table.path, file).toBe('');
+            expect(g.schema![0].fields, file).toEqual([]);
+            // Editable, matching what the shared note already promises.
+            expect(g.note, file).toBe(sharedNote);
+        }
     });
 
     it('warns before saving the files the running server rewrites itself', () => {
@@ -677,6 +699,28 @@ describe('RuneScape: Dragonwilds', () => {
         const curated = new Set(g.schema!.flatMap((s) => s.fields.map((f) => f.key)));
         expect(curated.has(addr(SECTION, 'ServerGuid'))).toBe(true);
         expect(g.format.parse(sample)!.getRaw(addr(SECTION, 'ServerGuid'))).toBe('A1B2C3D4');
+    });
+
+    it('reads every KnownPlayerList line, not just the last one', () => {
+        // getRaw resolves a repeated key to its last occurrence - correct for a
+        // scalar, useless for a list. getAllRaw is what makes the roster visible.
+        const doc = dw().format.parse(
+            [
+                '[/script/dominion.dedicatedserversettings]',
+                'ServerName=x',
+                'KnownPlayerList=(UserId="1",UserName="Ann",Privileges=2,LastAdminPassword="pw",bIsBanned=False)',
+                'KnownPlayerList=(UserId="2",UserName="Bob",Privileges=0,LastAdminPassword="",bIsBanned=True)',
+                '',
+            ].join('\n'),
+        )!;
+        const all = doc.getAllRaw!(addr(SECTION, 'KnownPlayerList'));
+        expect(all).toHaveLength(2);
+        expect(all[0]).toContain('UserName="Ann"');
+        expect(all[1]).toContain('UserName="Bob"');
+        // The scalar accessor still behaves as before for everything else.
+        expect(doc.getRaw(addr(SECTION, 'ServerName'))).toBe('x');
+        expect(doc.getAllRaw!(addr(SECTION, 'ServerName'))).toEqual(['x']);
+        expect(doc.getAllRaw!(addr(SECTION, 'Nope'))).toEqual([]);
     });
 
 

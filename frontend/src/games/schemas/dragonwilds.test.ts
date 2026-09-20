@@ -66,6 +66,28 @@ describe('dragonwildsSchema', () => {
         expect(byKey.has(addr(SECTION, 'bCanSaveAllSections'))).toBe(false);
     });
 
+    it('renders the player roster as a table, not as fields', () => {
+        // KnownPlayerList repeats once per player, so it is a list rather than a
+        // setting; a scalar field would show only the last line.
+        const players = dragonwildsSchema.find((g) => g.id === 'players')!;
+        expect(players.title).toBe('Players');
+        // Same icon as Server / Identity, as asked.
+        expect(players.icon).toBe(dragonwildsSchema.find((g) => g.id === 'identity')!.icon);
+        expect(players.fields).toEqual([]);
+        // struct-rows, not array-rows: the rows are repeated INI lines, and the
+        // kind is what makes the table read-only rather than editable.
+        expect(players.table?.kind).toBe('struct-rows');
+        if (players.table?.kind !== 'struct-rows') throw new Error('expected a struct-rows table');
+        expect(players.table.address).toBe(addr(SECTION, 'KnownPlayerList'));
+        expect(players.table.columns).toEqual([
+            { key: 'UserId', label: 'User ID' },
+            { key: 'UserName', label: 'User Name' },
+            { key: 'Privileges', label: 'Privileges' },
+            { key: 'LastAdminPassword', label: 'Last Admin Password' },
+            { key: 'bIsBanned', label: 'Is Banned', type: 'bool' },
+        ]);
+    });
+
     it('has unique group ids and field keys', () => {
         expect(new Set(dragonwildsSchema.map((group) => group.id)).size).toBe(dragonwildsSchema.length);
         expect(new Set(fields.map((field) => field.key)).size).toBe(fields.length);

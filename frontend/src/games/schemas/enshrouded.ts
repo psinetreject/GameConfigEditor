@@ -11,14 +11,15 @@
  * "Custom". The registry note says so, because editing those factors under any
  * other preset looks like it worked and changes nothing.
  *
- * Deliberately left to the generic groups:
+ * `userGroups` is an array of roles - name, password, five permission flags and
+ * reserved slots - and the part hosts edit most, so it gets an editable table:
+ * one row per role, one column per field. It works because the registry parses
+ * this file with the array-expanding JSON format, which makes every cell
+ * (`userGroups.0.password`) a real address the form can read and write with the
+ * right JSON type. Rows can be edited but not added or removed; the format
+ * won't grow a list, and a half-built role is worse than none.
  *
- * - `userGroups` - a variable-length array of roles (name, password, five
- *   permission flags, reserved slots). The registry parses this file with the
- *   array-expanding JSON format, so each role renders as its own
- *   `userGroups[N]` group with typed fields, which is what makes the passwords
- *   and permission flags editable at all - a curated schema cannot address
- *   slots that may or may not exist.
+ * Deliberately left to the generic groups:
  *
  * - `tags` and the ban list (`bannedAccounts`, `bans` on older servers) - arrays
  *   the server owns. Existing entries are editable in place; adding one stays a
@@ -77,6 +78,30 @@ export const enshroudedSchema: Schema = [
                 'Custom',
             ]),
         ],
+    },
+    {
+        id: 'usergroups',
+        title: 'User Groups',
+        icon: 'users',
+        // No fields: this group is the table. One row per role in userGroups.
+        fields: [],
+        table: {
+            kind: 'array-rows',
+            path: 'userGroups',
+            columns: [
+                { key: 'name', label: 'Name', type: 'text' },
+                { key: 'password', label: 'Password', type: 'text' },
+                { key: 'canKickBan', label: 'Kick / Ban', type: 'bool' },
+                { key: 'canAccessInventories', label: 'Inventories', type: 'bool' },
+                { key: 'canEditWorld', label: 'Edit World', type: 'bool' },
+                { key: 'canEditBase', label: 'Edit Base', type: 'bool' },
+                { key: 'canExtendBase', label: 'Extend Base', type: 'bool' },
+                { key: 'reservedSlots', label: 'Reserved Slots', type: 'number' },
+            ],
+            empty:
+                'This file defines no user groups. A server that has never been started, or one still using the ' +
+                'pre-Update-2 top-level password, has none - add them in the plain file editor.',
+        },
     },
     {
         id: 'player',

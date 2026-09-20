@@ -157,11 +157,25 @@ server root; per-world settings live in `config/paper-world-defaults.yml`,
 which isn't curated). All three are read at startup - restart after saving.
 
 `ops.json` / `whitelist.json` (and Bedrock's `allowlist.json` /
-`permissions.json`) are lists of players rather than settings, so they get no
-curated schema: the generic editor renders one group per entry, and existing
-entries can be edited in place. Adding or removing players stays a job for
-`/op`, `/deop` and `/whitelist`, because the running server rewrites these files
-whenever the list changes - the editor warns before saving to one.
+`permissions.json`) are lists of players rather than settings, and each file *is*
+a bare JSON array. They render as a **table, one row per player**. Before that
+the generic editor gave one titled group per entry, so a server with thirty
+operators was thirty headings and comparing two players meant scrolling between
+them.
+
+These are the only tables whose path is the document **root** (`''`): there is no
+key to hang a dotted path off, so their addresses start straight at the row index
+(`0.name`). Cells are editable in place and keep the file's JSON types - an ops
+`level` stays a number, `bypassesPlayerLimit` stays a boolean, and Bedrock's
+`permission` is a select over the three values the server accepts. Adding or
+removing players stays a job for `/op`, `/deop` and `/whitelist`, because the
+running server rewrites these files whenever the list changes - the editor warns
+before saving to one.
+
+A key no column names is *not* hidden by the table. Coverage is per cell rather
+than per subtree, so anything unexpected in a row still falls through to a
+generic group - which matters here more than anywhere, because a root path spans
+the entire file.
 
 Java and Bedrock both call their main config `server.properties` and share
 almost none of its keys. With a `game_id` each resolves to its own schema; when
@@ -173,10 +187,17 @@ generic editor rather than labelling a Bedrock config with Java's fields.
 `enshrouded_server.json` keeps its access control in a `userGroups` array - one
 object per role, each with a password and five permission flags, and the password
 a player types decides which role they join as. That array is the part hosts
-edit most, so this file is parsed with the array-walking JSON format (the one
-Minecraft's player lists use) rather than the plain one: each role becomes its
-own `userGroups[0]`, `userGroups[1]` group of typed fields instead of a single
-input holding the whole array as one line of JSON.
+edit most, so it gets an **editable table**: one row per role, one column per
+field, permission flags as toggles.
+
+That works because the file is parsed with the array-walking JSON format (the
+one Minecraft's player lists use) rather than the plain one. Every cell -
+`userGroups.0.password` - is a real address the format reads and writes, so the
+table binds to ordinary field models and gets the codec, the JSON type coercion
+(`reservedSlots` stays a number, `canKickBan` stays a boolean), the write-error
+reporting and the dirty flag for free. Rows can be edited but not added or
+removed: `json.ts` refuses to write through a missing index, so the form cannot
+grow a list, and adding a role stays a job for the plain editor.
 
 The trade-off is at the other end. An *empty* array contributes no addresses, so
 `tags` and the ban list are invisible on a fresh server - they round-trip
@@ -187,6 +208,36 @@ Everything under `gameSettings` is only read when `gameSettingsPreset` is
 `"Custom"`; under the other four presets the server uses the preset's values and
 ignores the file's. The editor says so in a banner, because the edit otherwise
 saves cleanly and changes nothing.
+
+### The Dragonwilds players table
+
+`KnownPlayerList` is a *repeated* key - the server appends one line per player
+who has entered the admin password, each an Unreal struct literal:
+
+```
+KnownPlayerList=(UserId="0002-...",UserName="...",Privileges=2,LastAdminPassword="...",bIsBanned=False)
+```
+
+`getRaw` resolves a repeated key to its **last** occurrence, which is right for
+a scalar that appears twice and useless for a list. So `ConfigDoc` gained
+`getAllRaw()`, and a Group can carry a `TableSpec` instead of fields: one row
+per occurrence, columns mapped from the struct's fields, `bIsBanned` as a
+checkmark. A table hangs off the *group* rather than being another `FType`
+because a field maps one address to one scalar model, and these rows are
+neither.
+
+It is **read-only**, deliberately. The server owns the list and rewrites the
+whole file on shutdown - the same reason the entry sets `stopWarning` - so an
+edit here races the process that wrote it. Bans belong in the in-game Server
+Management screen. Minecraft's player lists get the same call one step softer:
+their rows *are* editable, because each cell is a real address, but adding and
+removing players still belongs to the game for exactly this reason.
+
+The line format is not documented anywhere public; it is inferred from Unreal's
+conventions. The parser is therefore tolerant (quotes optional, field order
+irrelevant, unknown fields kept) and fails *visibly*: a line it does not
+recognise is printed verbatim under the table rather than dropped, so an
+unexpected format looks like unexpected text instead of a missing player.
 
 ### The Dragonwilds section header
 
@@ -218,6 +269,40 @@ The platform folder is not knowable up front, so the entry lists all four in
 `altDirs` and the tab probes them: every source disagrees (XGamingServer
 documents `Linux`, Jagex's own guide `LinuxServer`), and a Windows build run
 under Proton writes the *Windows* folders even on a Linux node.
+
+### The ARK override lists
+
+`Game.ini` is half settings and half *lists*, and ARK writes a list as one
+repeated key with an Unreal struct literal per line:
+
+```
+HarvestResourceItemAmountClassMultipliers=(ClassName="PrimalItemResource_Wood_C",Multiplier=2.0)
+HarvestResourceItemAmountClassMultipliers=(ClassName="PrimalItemResource_Stone_C",Multiplier=1.5)
+```
+
+Same shape as Dragonwilds' roster, same consequence: `getRaw` resolves a repeated
+key to its **last** occurrence, so every line but the final one was invisible and
+that one showed as an opaque struct string. Eight of these render as read-only
+struct tables - per-resource harvest amounts, item stack sizes, auto-unlocked
+engrams, engram overrides, and the four per-species dino damage/resistance lists.
+
+Each sets `hideWhenEmpty`, so its group appears only when the file has that key.
+The asymmetry with fields is deliberate: a curated field is worth rendering empty
+because an empty input is something you can fill in, but no table kind adds rows,
+so an empty table is a dead section - and a stock `Game.ini` has none of these
+lines.
+
+`ConfigOverrideItemMaxQuantity` nests a second struct inside the first
+(`Quantity=(MaxItemQuantity=200,bIgnoreMultiplier=true)`). The parser splits the
+top level only, so that cell holds the inner literal verbatim - short enough to
+read, and honest about what the file says.
+
+Not covered, deliberately: the lists whose payload is itself a list of structs
+(`ConfigOverrideSupplyCrateItems`, `ConfigOverrideItemCraftingCosts`,
+`ConfigAddNPCSpawnEntriesContainer`), where columns would be a worse view than
+the raw line the Advanced group already gives; and the subscripted single structs
+(`LevelExperienceRampOverrides`, `PerLevelStatsMultiplier_*`), which are one
+struct with a hundred members rather than a hundred rows.
 
 ## How it works
 
@@ -318,6 +403,9 @@ and renders anything not in the schema generically so nothing is ever hidden.
 - **Case-insensitive keys** for ARK/Unreal INI, so editing a game-written
   `AllowThirdPersonPlayer` never appends a duplicate `allowThirdPersonPlayer`.
 - **Info notes** (e.g. CS2's config-layering caveat) shown inline.
+- **Tables** for the parts of a config that are a list rather than a setting:
+  Minecraft's and Bedrock's player lists, Enshrouded's user groups, ARK's
+  `Game.ini` override lists, and Dragonwilds' player roster.
 
 ## Adding a game
 
@@ -328,6 +416,14 @@ and renders anything not in the schema generically so nothing is ever hidden.
 3. Add a `GameConfig` entry to `src/games/registry.ts` (`gameId`, `fileName`,
    `dir`, `format`, `schema`). Both the tab and a game-gated file editor wire up
    automatically.
+
+If part of the file is a *list* rather than a set of settings, give its group a
+`table` instead of fields (see `TableSpec` in `src/formats/types.ts`).
+`array-rows` is editable and addresses each cell by index - use `path: ''` when
+the file itself is the array; `struct-rows` is read-only and reads every
+occurrence of one repeated key via `getAllRaw()`. Add `hideWhenEmpty` for an
+optional list, and `note` where the default footer's reasoning doesn't fit the
+file.
 
 If the game belongs to an engine family that is already covered (Source,
 GoldSource, idTech/`set`-dialect, Arma), add a row to that family's `defs` table
