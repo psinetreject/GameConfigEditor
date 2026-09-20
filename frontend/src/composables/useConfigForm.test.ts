@@ -4,12 +4,22 @@
  * the codec into the doc.
  */
 import { describe, expect, it } from 'vitest';
-import { arrayTableRows, cellAddress, inferGroups, inferType, tableCells, tableRowCount, useConfigForm } from './useConfigForm';
+import {
+    arrayTableRows,
+    cellAddress,
+    inferGroups,
+    inferType,
+    structRaws,
+    structRows,
+    tableCells,
+    tableRowCount,
+    useConfigForm,
+} from './useConfigForm';
 import { makeIniFormat, iniFormat } from '../formats/ini';
 import { keyvalueFormat } from '../formats/keyvalue';
 import { jsonFormat, jsonListFormat } from '../formats/json';
 import { addr } from '../formats/shared';
-import type { Schema, TableColumn } from '../formats/types';
+import type { Schema, TableColumn, TableSpec } from '../formats/types';
 
 describe('inferType', () => {
     it('recognises booleans case-insensitively', () => {
@@ -318,5 +328,40 @@ describe('hideWhenEmpty', () => {
             },
         ];
         expect(useConfigForm(doc, mixed, jsonListFormat.codec).groups.value.map((g) => g.title)).toEqual(['List']);
+    });
+});
+
+describe('struct rows', () => {
+    const LIST = addr('s', 'List');
+    const spec = (): TableSpec => ({ kind: 'struct-rows', address: LIST, columns: [] });
+    const ini = (text: string) => makeIniFormat('probe', { caseInsensitive: true }).parse(text)!;
+
+    it('falls back to getRaw on a format that cannot repeat a key', () => {
+        // The failure this prevents is silent: without the fallback such a
+        // table reports zero rows, which is indistinguishable from the file
+        // genuinely having none - and hideWhenEmpty then deletes the group.
+        const doc = ini('[s]\nList=(Name="one")');
+        const noAllRaw = { ...doc, getAllRaw: undefined };
+
+        expect(structRaws(noAllRaw, LIST)).toEqual(['(Name="one")']);
+        expect(tableRowCount(noAllRaw, spec())).toBe(1);
+        expect(structRaws(noAllRaw, addr('s', 'Absent'))).toEqual([]);
+    });
+
+    it('ignores a blank value rather than counting a row it cannot render', () => {
+        // `List=` parses as neither a row nor an unrecognised line, so counting
+        // it would render column headers over an empty body.
+        const doc = ini('[s]\nList=\nOther=1');
+        expect(structRows(doc, LIST)).toEqual({ rows: [], unparsed: [] });
+        expect(tableRowCount(doc, spec())).toBe(0);
+    });
+
+    it('counts an unrecognised line, which is still shown verbatim', () => {
+        const doc = ini('[s]\nList=(Name="one")\nList=not-a-struct');
+        const { rows, unparsed } = structRows(doc, LIST);
+
+        expect(rows).toEqual([{ Name: 'one' }]);
+        expect(unparsed).toEqual(['not-a-struct']);
+        expect(tableRowCount(doc, spec())).toBe(2);
     });
 });

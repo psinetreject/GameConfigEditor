@@ -143,7 +143,8 @@ export interface ConfigDoc {
      * repeated key to express a LIST (one `KnownPlayerList=(...)` line per
      * player), and for those the earlier lines are the data, not shadowed
      * duplicates. Formats that can't repeat a key may omit this; callers fall
-     * back to `getRaw`.
+     * back to `getRaw` and treat its single value as the one row (see
+     * structRaws in useConfigForm).
      */
     getAllRaw?(address: string): string[];
     /**

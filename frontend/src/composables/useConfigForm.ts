@@ -10,6 +10,7 @@
 import { computed, ref, type WritableComputedRef } from 'vue';
 import type { Codec, ConfigDoc, ConfigValue, FieldDef, FType, Group, Schema, TableSpec } from '../formats/types';
 import { escapeSegment, splitAddress } from '../formats/shared';
+import { parseUnrealStruct } from '../formats/unrealStruct';
 
 /**
  * Segments of a table path.
@@ -84,13 +85,54 @@ export function tableCells(doc: ConfigDoc, schema: Schema): FieldDef[] {
 }
 
 /**
+ * Every raw occurrence of a struct table's address.
+ *
+ * `getAllRaw` is optional. A format that cannot repeat a key may omit it, and
+ * for such a format the single `getRaw` value IS the one row - so fall back
+ * rather than report the table empty. Reading `?? []` instead would make a
+ * table silently vanish on any format that hasn't implemented the method,
+ * which is indistinguishable from the file genuinely having no entries.
+ */
+export function structRaws(doc: ConfigDoc, address: string): string[] {
+    if (doc.getAllRaw) return doc.getAllRaw(address);
+    const only = doc.getRaw(address);
+    return only === undefined ? [] : [only];
+}
+
+/**
+ * A struct table's occurrences, split into the rows we understand and the
+ * lines we don't. Both are rendered - an unrecognised line is shown verbatim
+ * rather than dropped - so both count towards the table being non-empty.
+ *
+ * A blank value (`KnownPlayerList=` with nothing after it) is neither, and is
+ * excluded from both: counting it would render a table of headers over no
+ * rows, with nothing to explain why.
+ */
+export function structRows(doc: ConfigDoc, address: string): {
+    rows: Record<string, string>[];
+    unparsed: string[];
+} {
+    const rows: Record<string, string>[] = [];
+    const unparsed: string[] = [];
+    for (const raw of structRaws(doc, address)) {
+        const fields = parseUnrealStruct(raw);
+        if (fields) rows.push(fields);
+        else if (raw.trim() !== '') unparsed.push(raw);
+    }
+    return { rows, unparsed };
+}
+
+/**
  * How many rows a table would render. Shared by the form, which drops an
  * optional table that has none, and by ConfigTable, which shows its empty note.
+ *
+ * Counts what actually renders, so the two can never disagree about whether a
+ * table is empty.
  */
 export function tableRowCount(doc: ConfigDoc, spec: TableSpec): number {
-    return spec.kind === 'array-rows'
-        ? arrayTableRows(doc, spec.path).length
-        : (doc.getAllRaw?.(spec.address) ?? []).length;
+    if (spec.kind === 'array-rows') return arrayTableRows(doc, spec.path).length;
+    const { rows, unparsed } = structRows(doc, spec.address);
+    return rows.length + unparsed.length;
 }
 
 /**

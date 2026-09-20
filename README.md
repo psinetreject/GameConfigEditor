@@ -239,6 +239,11 @@ irrelevant, unknown fields kept) and fails *visibly*: a line it does not
 recognise is printed verbatim under the table rather than dropped, so an
 unexpected format looks like unexpected text instead of a missing player.
 
+A key written with no value at all (`KnownPlayerList=`) is the one thing that is
+neither a row nor an unrecognised line, and it is ignored rather than counted -
+otherwise the table would render its column headers above an empty body, with
+nothing on screen to say why.
+
 ### The Dragonwilds section header
 
 `DedicatedServer.ini` is an ordinary Unreal INI, with one trap. Jagex's guide
@@ -424,6 +429,14 @@ the file itself is the array; `struct-rows` is read-only and reads every
 occurrence of one repeated key via `getAllRaw()`. Add `hideWhenEmpty` for an
 optional list, and `note` where the default footer's reasoning doesn't fit the
 file.
+
+`getAllRaw()` is optional on `ConfigDoc`, so read a struct table through
+`structRaws()`/`structRows()` in `useConfigForm` rather than calling it
+directly. They fall back to `getRaw()` on a format that can't repeat a key -
+where its single value is the one row - and they are what both the table and
+`hideWhenEmpty` count, so the two can't disagree about whether a table is empty.
+A format that wraps another (`groundbranch.ts`) should spread the base document
+rather than listing members by hand, or optional ones like this go missing.
 
 If the game belongs to an engine family that is already covered (Source,
 GoldSource, idTech/`set`-dialect, Arma), add a row to that family's `defs` table

@@ -25,8 +25,8 @@
 import { computed } from 'vue';
 import type { ConfigDoc, ConfigValue, TableSpec } from '../formats/types';
 import type { WritableComputedRef } from 'vue';
-import { arrayTableRows, cellAddress, tableRowCount } from '../composables/useConfigForm';
-import { isStructTrue, parseUnrealStruct, structField } from '../formats/unrealStruct';
+import { arrayTableRows, cellAddress, structRows as readStructRows, tableRowCount } from '../composables/useConfigForm';
+import { isStructTrue, structField } from '../formats/unrealStruct';
 import FieldInput from './FieldInput.vue';
 
 const props = defineProps<{
@@ -36,19 +36,17 @@ const props = defineProps<{
     saving?: boolean;
 }>();
 
-/** struct-rows: every occurrence, split into the ones we understand and the rest. */
-const structRows = computed(() => {
-    if (props.spec.kind !== 'struct-rows') return { rows: [], unparsed: [], total: 0 };
-    const raws = props.doc.getAllRaw?.(props.spec.address) ?? [];
-    const rows: Record<string, string>[] = [];
-    const unparsed: string[] = [];
-    for (const raw of raws) {
-        const fields = parseUnrealStruct(raw);
-        if (fields) rows.push(fields);
-        else if (raw.trim() !== '') unparsed.push(raw);
-    }
-    return { rows, unparsed, total: raws.length };
-});
+/**
+ * struct-rows: every occurrence, split into the ones we understand and the rest.
+ *
+ * Read through the shared helper rather than reaching for getAllRaw here, so
+ * this and tableRowCount can never disagree about what the table holds.
+ */
+const structRows = computed(() =>
+    props.spec.kind === 'struct-rows'
+        ? readStructRows(props.doc, props.spec.address)
+        : { rows: [] as Record<string, string>[], unparsed: [] as string[] },
+);
 
 /** array-rows: the indices actually present in the document. */
 const arrayRows = computed(() =>

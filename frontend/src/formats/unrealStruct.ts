@@ -72,7 +72,12 @@ export function parseUnrealStruct(raw: string): Record<string, string> | null {
     const text = raw.trim();
     if (!text.startsWith('(') || !text.endsWith(')')) return null;
 
-    const out: Record<string, string> = {};
+    // Null-prototype, as the line index in ini.ts is: a struct member called
+    // `__proto__` passes the key test below, and on a plain object literal
+    // assigning it sets the prototype instead of an own property - so the row
+    // would count a field it doesn't actually carry. It also keeps structField's
+    // `key in fields` from matching an inherited `toString`.
+    const out: Record<string, string> = Object.create(null);
     let found = 0;
     for (const item of splitTopLevel(text.slice(1, -1))) {
         const eq = item.indexOf('=');
