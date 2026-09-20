@@ -33,10 +33,18 @@ import { mtaSchema } from './schemas/mta';
 import { factorioSchema } from './schemas/factorio';
 import { enshroudedSchema } from './schemas/enshrouded';
 import { dragonwildsSchema } from './schemas/dragonwilds';
+import {
+    groundBranchAdminSchema,
+    groundBranchBanSchema,
+    groundBranchServerSchema,
+    groundBranchTeamKillSchema,
+    groundBranchVoteSchema,
+} from './schemas/groundbranch';
 import { sourceGames } from './source';
 import { goldSourceGames } from './goldsource';
 import { idTechGames } from './idtech';
 import { armaGames } from './arma';
+import { makeGroundBranchFormat } from '../formats/groundbranch';
 
 // ARK/Unreal INI keys are case-insensitive - match them that way so a schema
 // field and a differently-cased file key don't produce a duplicate.
@@ -55,6 +63,8 @@ const dragonwildsIni = makeIniFormat('dragonwilds-ini', {
     caseInsensitive: true,
     codec: { isTruthy: (r) => /^(1|true|yes|on)$/i.test(r.trim()) },
 });
+
+const groundBranchIni = makeGroundBranchFormat(makeIniFormat('groundbranch-base-ini', { caseInsensitive: true }));
 
 // TeamSpeak's ini is flat key=value like server.properties, but its booleans are
 // 1/0 rather than true/false.
@@ -427,6 +437,53 @@ export const games: GameConfig[] = [
         format: ts3Ini,
         schema: ts3Schema,
         loadHint: TS3_LOAD_HINT,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch (Vote)',
+        fileName: 'Vote.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
+        schema: groundBranchVoteSchema,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch (Admin)',
+        fileName: 'Admin.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
+        schema: groundBranchAdminSchema,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch',
+        fileName: 'Server.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
+        schema: groundBranchServerSchema,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch (Team Kill)',
+        fileName: 'TeamKill.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
+        schema: groundBranchTeamKillSchema,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch (Ban)',
+        fileName: 'Ban.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
+        schema: groundBranchBanSchema,
+    },
+    {
+        gameId: '476400',
+        gameName: 'Ground Branch (Map List)',
+        fileName: 'MapList.ini',
+        dir: '/GroundBranch/ServerConfig',
+        format: groundBranchIni,
     },
     {
         gameId: 'samp',

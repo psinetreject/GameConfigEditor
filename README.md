@@ -11,7 +11,7 @@ shared config-format parsers.
 
 ## Supported games
 
-38 of the 41 games in GameAP's built-in catalog, plus seven added manually.
+39 of the 41 games in GameAP's built-in catalog, plus seven added manually.
 `game_id` is what the plugin matches on (`server.game_id`); the server app id is
 the Steam dedicated-server app from GameAP's own catalog, handy when adding a game
 to the panel.
@@ -97,9 +97,14 @@ one.
 #### Other
 | Game | `game_id` | Server app id | Config path |
 |---|---|---|---|
+| Ground Branch | `476400` | `476400` | `/GroundBranch/ServerConfig/{Vote,Admin,Server,TeamKill,Ban,MapList}.ini` |
 | TeamSpeak 3 | `teamspeak3` | - | `/ts3server.ini` |
 | GTA: San-Andreas Multiplayer | `samp` | - | `/server.cfg` |
 | GTA: Multi Theft Auto | `mta` | - | `/mods/deathmatch/mtaserver.conf` |
+
+Ground Branch's `Server.ini` stores `GameRules` as a tuple list inside one INI
+value. The editor exposes each rule as a boolean field and changes only that
+tuple member, while repeated entries in the other files remain round-trippable.
 
 Some paths are conventions rather than guarantees: Arma loads whatever `-config`
 names (and nothing if the argument is absent), the idTech engines resolve
